@@ -1,8 +1,10 @@
 #include "core/assimpLoader.h"
+#include "core/camera.h"
 #include "core/material.h"
 #include "core/model.h"
 #include "core/objectSystems/components/Light.h"
 #include "core/objectSystems/components/Renderer.h"
+#include "core/rendering/frameBuffer.h"
 #include "core/rendering/mesh.h"
 #include "core/rendering/texture.h"
 #include "core/sceneManager.h"
@@ -13,8 +15,6 @@
 #include "panels/inspectorPanel.h"
 #include "panels/postProcessingPanel.h"
 #include "panels/ViewportPanel.h"
-#include <core/camera.h>
-#include <core/rendering/frameBuffer.h>
 #include <cstdio>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -354,10 +354,25 @@ namespace editor
 
         if (ImGui::BeginMenu("File"))
         {
-            if (ImGui::MenuItem("Exit")) 
-            { 
+            if (ImGui::MenuItem("Save Scene", "Ctrl+S"))
+            {
+                if (editorCtx.currentScene) {
+                    std::string filename = "assets/" + editorCtx.currentScene->GetName() + ".json";
+                    editorCtx.currentScene->SaveToFile(filename);
+                }
+            }
+            if (ImGui::MenuItem("Load Scene", "Ctrl+O"))
+            {
+                if (editorCtx.currentScene) {
+                    std::string filename = "assets/" + editorCtx.currentScene->GetName() + ".json";
+                    editorCtx.currentScene->LoadFromFile(filename);
+                }
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Exit"))
+            {
                 m_isRunning = false;
-                glfwSetWindowShouldClose(m_window, true); 
+                glfwSetWindowShouldClose(m_window, true);
             }
             ImGui::EndMenu();
         }

@@ -1,7 +1,6 @@
 #pragma once
 #include <memory>
 #include <string>
-#include "nlohmann/json.hpp"
 #include "../property.h"
 
 namespace core {
@@ -55,8 +54,6 @@ public:
     /// </summary>
     bool IsDestroyed() const;
 
-    virtual void Serialize(nlohmann::json& out) const;
-    virtual void Deserialize(const nlohmann::json& in);
     std::string name{};
 
 protected:

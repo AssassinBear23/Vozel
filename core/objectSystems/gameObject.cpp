@@ -1,8 +1,14 @@
-#include "GameObject.h"
 #include "Component.h"
-#include "editor/editor.h"
-#include "core/scene.h"
 #include "ComponentFactory.h"
+#include "core/scene.h"
+#include "editor/editor.h"
+#include "GameObject.h"
+#include "object.h"
+#include <cstdio>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace core {
     std::shared_ptr<GameObject> GameObject::Create(std::string name)
@@ -64,7 +70,6 @@ namespace core {
 
     const std::vector<std::shared_ptr<GameObject>>& GameObject::GetChildren() const { return m_children; }
 
-
     const std::vector<std::shared_ptr<Component>>& GameObject::GetComponents() const {
         return m_components;
     }
@@ -88,64 +93,75 @@ namespace core {
         SetChildrenEnabledState(newValue);
     }
 
-    void GameObject::Serialize(nlohmann::json& out) const
+    json GameObject::Serialize() const
     {
-        // Base info
-        Object::Serialize(out);
-
-        // Components
-        nlohmann::json compsArray = nlohmann::json::array();
+        json j;
+        j["name"] = name;
+        j["enabled"] = isEnabled.Get();
+        
+        // Serialize components
+        json components = json::array();
         for (const auto& comp : m_components) {
-            nlohmann::json compJson;
-            compJson["type"] = comp->GetTypeName();
-            comp->Serialize(compJson);
-            compsArray.push_back(compJson);
+            json compData;
+            compData["type"] = comp->GetTypeName();
+            compData["data"] = comp->Serialize();
+            components.push_back(compData);
         }
-
-        out["components"] = compsArray;
-
-        // Children (recursive)
-        nlohmann::json childrenArray = nlohmann::json::array();
+        j["components"] = components;
+        
+        // Serialize children recursively
+        json children = json::array();
         for (const auto& child : m_children) {
-            nlohmann::json childJson;
-            child->Serialize(childJson);
-            childrenArray.push_back(std::move(childJson));
+            children.push_back(child->Serialize());
         }
-
-        out["children"] = childrenArray;
+        j["children"] = children;
+        
+        return j;
     }
 
-    void GameObject::Deserialize(const nlohmann::json& in)
+    void GameObject::Deserialize(const json& data)
     {
-        // Base info
-        Object::Deserialize(in);
-
-        // Components
-        if (in.contains("components") && in["components"].is_array()) {
-            for (const auto& compJson : in["components"]) {
-                const std::string type = compJson.value("type", "");
-
-                if (type.empty()) continue;
-
-                if (type == "Transform" && transform)
-                    transform->Deserialize(compJson);
+        if (data.contains("name")) {
+            name = data["name"].get<std::string>();
+        }
+        
+        if (data.contains("enabled")) {
+            isEnabled = data["enabled"].get<bool>();
+        }
+        
+        // Deserialize components (skip Transform as it's auto-created)
+        if (data.contains("components")) {
+            for (const auto& compData : data["components"]) {
+                std::string typeName = compData["type"].get<std::string>();
+                
+                // Transform is always created automatically, just deserialize it
+                if (typeName == "Transform") {
+                    if (transform && compData.contains("data")) {
+                        transform->Deserialize(compData["data"]);
+                    }
+                }
                 else {
-                    auto comp = ComponentFactory::Create(type);
-                    if (comp) {
-                        comp->Deserialize(compJson);
-                        comp->OnAttach(std::static_pointer_cast<GameObject>(shared_from_this()));
-                        m_components.push_back(comp);
+                    // Create component using factory
+                    auto component = ComponentFactory::Create(typeName);
+                    if (component) {
+                        if (compData.contains("data")) {
+                            component->Deserialize(compData["data"]);
+                        }
+                        AddComponent(component);
+                    }
+                    else {
+                        printf("[WARNING] Failed to create component type: %s\n", typeName.c_str());
                     }
                 }
             }
         }
-
-        // Children (recursive)
-        if (in.contains("children") && in["children"].is_array()) {
-            for (const auto& childJson : in["children"]) {
-                auto childGO = GameObject::Create();
-                childGO->Deserialize(childJson);
-                childGO->SetParent(std::static_pointer_cast<GameObject>(shared_from_this()));
+        
+        // Deserialize children recursively
+        if (data.contains("children")) {
+            for (const auto& childData : data["children"]) {
+                auto child = GameObject::Create();
+                child->Deserialize(childData);
+                child->SetParent(std::static_pointer_cast<GameObject>(shared_from_this()));
             }
         }
     }

@@ -1,8 +1,10 @@
 #pragma once
+
 #include "../../material.h"
 #include "../../Rendering/mesh.h"
 #include "../Component.h"
-#include <core/ObjectSystems/gameObject.h>
+#include "core/model.h"
+#include "core/ObjectSystems/gameObject.h"
 #include <glad/glad.h>
 #include <memory>
 #include <string>
@@ -20,24 +22,28 @@ namespace core
     {
     public:
         Renderer() = default;
-        
-		std::string GetTypeName() const override { return "Renderer"; }
+
+        std::string GetTypeName() const override { return "Renderer"; }
 
         // Single mesh constructor
         Renderer(const Mesh& mesh, std::shared_ptr<Material> material)
-            : m_meshes{mesh}, m_material(material) {}
+            : m_meshes{ mesh }, m_material(material)
+        {}
 
         // Multiple meshes constructor (for models with submeshes)
         Renderer(const std::vector<Mesh>& meshes, std::shared_ptr<Material> material)
-            : m_meshes(meshes), m_material(material) {}
+            : m_meshes(meshes), m_material(material)
+        {}
 
         // Mesh management
-        void SetMesh(const Mesh& mesh) { 
+        void SetMesh(const Mesh& mesh)
+        {
             m_meshes.clear();
             m_meshes.push_back(mesh);
         }
 
-        void SetMeshes(const std::vector<Mesh>& meshes) { 
+        void SetMeshes(const std::vector<Mesh>& meshes)
+        {
             m_meshes = meshes;
         }
 
@@ -46,6 +52,16 @@ namespace core
         // Material management
         void SetMaterial(std::shared_ptr<Material> material) { m_material = material; }
         std::shared_ptr<Material> GetMaterial() const { return m_material; }
+
+        /// <summary>
+        /// Sets the model path for this renderer (used for serialization).
+        /// </summary>
+        void SetModelPath(const std::string& path) { m_modelPath = path; }
+
+        /// <summary>
+        /// Gets the model path for this renderer.
+        /// </summary>
+        const std::string& GetModelPath() const { return m_modelPath; }
 
         /// <summary>
         /// Render all meshes with the current material.
@@ -63,9 +79,39 @@ namespace core
         /// </summary>
         void OnDetach() override;
 
+        /// <summary>
+        /// Serializes the Renderer component to JSON.
+        /// Saves model path and material data.
+        /// </summary>
+        json Serialize() const override
+        {
+            json j;
+            j["modelPath"] = m_modelPath;
+            
+            // Serialize material
+            if (m_material) {
+                j["material"] = m_material->Serialize();
+            }
+            
+            return j;
+        }
+
+        /// <summary>
+        /// Deserializes the Renderer component from JSON.
+        /// Loads model and recreates material.
+        /// </summary>
+        void Deserialize(const json& data) override;
+
+        // Add a new method to set meshes from a Model object:
+        void SetModel(const Model& model) {
+            m_meshes = model.GetMeshes();
+            m_modelPath = model.GetModelPath();
+        }
+
     private:
         std::vector<Mesh> m_meshes;
         std::shared_ptr<Material> m_material;
         std::weak_ptr<Scene> m_scene;
+        std::string m_modelPath;  // Path to the model file for serialization
     };
 }

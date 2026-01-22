@@ -125,6 +125,16 @@ namespace core
         /// </summary>
         const std::string& GetFragmentShaderPath() const { return m_fragmentShaderPath; }
 
+        /// <summary>
+        /// Serializes the material to JSON (saves shader paths, texture paths, uniforms).
+        /// </summary>
+        json Serialize() const;
+
+        /// <summary>
+        /// Deserializes the material from JSON (loads shaders, textures, sets uniforms).
+        /// </summary>
+        void Deserialize(const json& data);
+
     private:
         GLuint m_shaderProgram = 0;
         
