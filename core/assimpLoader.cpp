@@ -1,8 +1,17 @@
 #include "assimpLoader.h"
+#include "model.h"
 #include "Rendering/mesh.h"
+#include "rendering/vertex.h"
 #include <assimp/Importer.hpp>
-#include <assimp/scene.h>
+#include <assimp/mesh.h>
 #include <assimp/postprocess.h>
+#include <assimp/scene.h>
+#include <cstdio>
+#include <glad/glad.h>
+#include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <string>
+#include <vector>
 
 namespace core {
     Model AssimpLoader::loadModel(const std::string& path) {
@@ -42,7 +51,7 @@ namespace core {
         
         printf("  - Processed meshes: %zu\n", meshes.size());
         
-        return Model(meshes);
+        return Model(meshes, path);  // Pass the path to Model constructor
     }
 
     void AssimpLoader::processNode(aiNode *node, const aiScene *scene, std::vector<Mesh>& meshes) {

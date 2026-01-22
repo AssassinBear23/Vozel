@@ -28,13 +28,9 @@ namespace core {
 
             glBindTexture(GL_TEXTURE_2D, 0);
             stbi_image_free(data);
-        } else {
+            m_path = path;
+        } else
             printf("Texture failed to load at path: %s\n", path.c_str());
-            stbi_image_free(data);
-        }
-    }
-
-    GLuint Texture::getId() {
-        return id;
+        
     }
 }
