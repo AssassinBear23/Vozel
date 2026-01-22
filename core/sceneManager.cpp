@@ -1,5 +1,7 @@
+#include "scene.h"
 #include "sceneManager.h"
 #include <editor/editor.h>
+#include <vector>
 
 namespace core
 {
@@ -10,12 +12,12 @@ namespace core
         auto it = m_sceneFactories.find(sceneName);
         if (it == m_sceneFactories.end())
             return false;
-        
+
         m_currentScene = std::make_shared<core::Scene>(sceneName);
         editor::Editor::editorCtx.currentScene = m_currentScene;
         editor::Editor::editorCtx.currentSelectedGameObject = nullptr;
-        
-        if(m_internalUbo != uboLights)
+
+        if (m_internalUbo != uboLights)
             m_internalUbo = uboLights;
 
         m_currentScene->SetLightUBO(uboLights);

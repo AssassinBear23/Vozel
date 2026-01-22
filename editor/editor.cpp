@@ -30,10 +30,10 @@ namespace editor
     // Define the static member
     EditorContext Editor::editorCtx;
 
-    Editor::~Editor() 
-    { 
-        if (m_initialized) 
-            shutdown(); 
+    Editor::~Editor()
+    {
+        if (m_initialized)
+            shutdown();
     }
 
     static void APIENTRY glDebugOutput(GLenum source,
@@ -121,7 +121,7 @@ namespace editor
         }
 
         // Setup OpenGL debug callback
-        int flags; 
+        int flags;
         glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
         if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
         {
@@ -172,13 +172,13 @@ namespace editor
 
         // Initialize editor camera
         m_editorCamera = std::make_unique<core::Camera>(
-            glm::vec3(0.0f, 0.0f, 10.0f), 
+            glm::vec3(0.0f, 0.0f, 10.0f),
             glm::vec3(0.0f, 1.0f, 0.0f)
         );
 
         // Create scene render framebuffer
         m_sceneRenderBuffer = std::make_unique<core::FrameBuffer>(
-            "SceneFBO", 
+            "SceneFBO",
             core::FrameBufferSpecifications{
                 800, 600,
                 core::AttachmentType::COLOR_DEPTH,
@@ -308,7 +308,7 @@ namespace editor
             if (m_postProcessingManager && viewportFrameBuffer)
             {
                 m_postProcessingManager->ProcessStack(
-                    *m_sceneRenderBuffer, 
+                    *m_sceneRenderBuffer,
                     *viewportFrameBuffer,
                     vw, vh
                 );
@@ -536,12 +536,12 @@ namespace editor
     {
         // TODO: When you implement serialization, check for saved scene file here
         // For now, always return false to load default scenes
-        
+
         // Example future implementation:
         // if (std::filesystem::exists("saved_scene.json")) {
         //     return deserializeAndLoadScene("saved_scene.json");
         // }
-        
+
         return false;
     }
 

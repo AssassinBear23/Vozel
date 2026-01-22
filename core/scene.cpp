@@ -1,15 +1,15 @@
+#include "objectSystems/component.h"
 #include "ObjectSystems/Components/Light.h"
 #include "ObjectSystems/Components/Renderer.h"
 #include "ObjectSystems/GameObject.h"
+#include "rendering/shader.h"
 #include "Scene.h"
 #include <algorithm>
+#include <cstdio>
+#include <exception>
+#include <fstream>
 #include <glad/glad.h>
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_float4x4.hpp>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/ext/vector_float3.hpp>
-#include <glm/ext/vector_float4.hpp>
-#include <glm/ext/vector_int4.hpp>
+#include <glm/glm.hpp>
 #include <memory>
 #include <string>
 #include <utility>
@@ -21,7 +21,6 @@ namespace core
     {
         SetName(std::move(name));
         depthShader = Shader("assets/shaders/depthVertex.vert", "assets/shaders/depthFragment.frag");
-        // printf("[Scene] Created scene: %s\n", m_name.c_str());
     }
 
     void Scene::SetName(std::string name) { m_name = std::move(name); }
@@ -58,32 +57,22 @@ namespace core
 
     void Scene::Render(const glm::mat4& view, const glm::mat4& projection)
     {
-        // printf("\n=== Scene::Render START ===\n");
-        // printf("[Render] Renderers: %zu, Lights: %zu\n", m_renderers.size(), m_lights.size());
         
         if (m_renderers.empty())
-        {
-            // printf("[WARNING] No renderers registered in scene!\n");
             return;
-        }
 
         // Setting light data UBO
         LightData lightData = {};
         lightData.numLights = static_cast<int>(m_lights.size() < 4 ? m_lights.size() : 4);
 
         if (m_depthMaps.size() < lightData.numLights)
-        {
-            // printf("[Render] Generating depth maps for %d lights\n", lightData.numLights);
             GenerateDepthMaps(lightData.numLights, SHADOW_WIDTH, SHADOW_HEIGHT);
-        }
 
         // Save current viewport dimensions AND framebuffer binding
         GLint viewport[4];
         GLint previousFramebuffer;
         glGetIntegerv(GL_VIEWPORT, viewport);
         glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previousFramebuffer);
-        // printf("[Render] Current viewport: %d x %d at (%d, %d), Framebuffer: %d\n", 
-        //        viewport[2], viewport[3], viewport[0], viewport[1], previousFramebuffer);
 
         // Pass 1: Render shadow maps
         for (size_t i = 0; i < m_lights.size() && i < 4; ++i)
@@ -103,15 +92,12 @@ namespace core
             
             lightData.lightTypes[i] = glm::ivec4(ToInt(light->lightType.Get()), 0, 0, 0);
 
-            // printf("[Render] Rendering shadow map for light %zu (type: %d)\n", i, ToInt(light->lightType.Get()));
             RenderShadowMap(i);
         }
 
         // Restore viewport AND framebuffer
         glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
         glBindFramebuffer(GL_FRAMEBUFFER, previousFramebuffer);
-        // printf("[Render] Restored viewport: %d x %d, Framebuffer: %d\n", 
-        //        viewport[2], viewport[3], previousFramebuffer);
 
         // Upload light data to UBO
         glBindBuffer(GL_UNIFORM_BUFFER, m_uboLights);
@@ -121,28 +107,19 @@ namespace core
         // Check for OpenGL errors before final render
         GLenum err = glGetError();
         if (err != GL_NO_ERROR)
-        {
             printf("[ERROR] OpenGL error before RenderFinalScene: 0x%x\n", err);
-        }
 
         // Pass 2: Render final scene
-        // printf("[Render] Starting RenderFinalScene\n");
         RenderFinalScene(view, projection);
 
         // Check for OpenGL errors after render
         err = glGetError();
         if (err != GL_NO_ERROR)
-        {
             printf("[ERROR] OpenGL error after RenderFinalScene: 0x%x\n", err);
-        }
-
-        // printf("=== Scene::Render END ===\n\n");
     }
 
     void Scene::RenderShadowMap(int lightIndex)
     {
-        // printf("  [ShadowMap] Rendering shadow map for light %d\n", lightIndex);
-        
         if (lightIndex >= m_lights.size()) return;
         auto light = m_lights[lightIndex];
         if (!light || !light->isEnabled) return;
@@ -159,7 +136,6 @@ namespace core
             glm::vec3 lightDir = lightGO->transform->forward();
             glm::vec3 lightPos = -lightDir * 10.0f;
             lightView = glm::lookAt(lightPos, lightPos + lightDir, glm::vec3(0.0f, 1.0f, 0.0f));
-            // printf("  [ShadowMap] Using directional light projection\n");
         }
         else
         {
@@ -167,7 +143,6 @@ namespace core
             lightView = glm::lookAt(lightGO->transform->position,
                                     lightGO->transform->position + lightGO->transform->forward(),
                                     glm::vec3(0.0f, 1.0f, 0.0f));
-            // printf("  [ShadowMap] Using perspective projection\n");
         }
 
         lightSpaceMatrix = lightProjection * lightView;
@@ -205,7 +180,6 @@ namespace core
                 // renderedCount++;
             }
         }
-        // printf("  [ShadowMap] Rendered %d meshes to shadow map\n", renderedCount);
 
         glCullFace(GL_BACK);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -240,16 +214,12 @@ namespace core
             
             // Pass light space matrix and shadow map only if we have lights
             if (!m_lightSpaceMatrices.empty() && !m_depthMaps.empty())
-            {
                 material->SetMat4("lightSpaceMatrix", m_lightSpaceMatrices[0]);
-            }
             
             // Check OpenGL error before rendering
             GLenum err = glGetError();
             if (err != GL_NO_ERROR)
-            {
                 printf("  [ERROR] OpenGL error before rendering %s: 0x%x\n", go->name.c_str(), err);
-            }
             
             // Call material->Use() which will bind textures and set uniforms
             material->Use();
@@ -263,23 +233,17 @@ namespace core
                 // Set the uniform to point to texture unit 3
                 GLint shadowMapLoc = glGetUniformLocation(material->GetShaderProgram(), "shadowMap");
                 if (shadowMapLoc != -1)
-                {
                     glUniform1i(shadowMapLoc, 3);
-                }
             }
             
             // Now render the meshes
             for (auto& mesh : renderer->GetMeshes())
-            {
                 mesh.Render(GL_TRIANGLES);
-            }
             
             // Check OpenGL error after rendering
             err = glGetError();
             if (err != GL_NO_ERROR)
-            {
                 printf("  [ERROR] OpenGL error after rendering %s: 0x%x\n", go->name.c_str(), err);
-            }
         }
     }
 
@@ -305,8 +269,6 @@ namespace core
 
     void Scene::GenerateDepthMaps(int numLights, int width_resolution, int height_resolution)
     {
-        // printf("[GenerateDepthMaps] Creating %d depth maps (%dx%d)\n", numLights, width_resolution, height_resolution);
-        
         // Clean up old maps if they exist
         if (!m_depthMapFBOs.empty()) {
             // printf("[GenerateDepthMaps] Cleaning up old depth maps\n");
@@ -327,9 +289,6 @@ namespace core
 
         for (int i = 0; i < numLights; ++i)
         {
-            // printf("[GenerateDepthMaps] Setting up depth map %d: FBO=%d, Texture=%d\n", 
-            //        i, m_depthMapFBOs[i], m_depthMaps[i]);
-            
             // Configure depth texture
             glBindTexture(GL_TEXTURE_2D, m_depthMaps[i]);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
@@ -350,16 +309,84 @@ namespace core
             // Check framebuffer completeness
             GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
             if (status != GL_FRAMEBUFFER_COMPLETE)
-            {
                 printf("[ERROR] Framebuffer %d not complete! Status: 0x%x\n", i, status);
-            }
-            // else
-            // {
-            //     printf("[GenerateDepthMaps] Framebuffer %d complete\n", i);
-            // }
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        // printf("[GenerateDepthMaps] Depth maps created successfully\n");
     }
-}
+
+    json Scene::Serialize() const
+    {
+        json j;
+        j["name"] = m_name;
+        j["bloomThreshold"] = m_bloomThreshold;
+        
+        json roots = json::array();
+        for (const auto& root : m_roots) {
+            roots.push_back(root->Serialize());
+        }
+        j["roots"] = roots;
+        
+        return j;
+    }
+
+    void Scene::Deserialize(const json& data)
+    {
+        if (data.contains("name")) {
+            m_name = data["name"].get<std::string>();
+        }
+        
+        if (data.contains("bloomThreshold")) {
+            m_bloomThreshold = data["bloomThreshold"].get<float>();
+        }
+        
+        m_roots.clear();
+        
+        if (data.contains("roots")) {
+            for (const auto& rootData : data["roots"]) {
+                auto go = GameObject::Create();
+                go->Deserialize(rootData);
+                AddRootGameObject(go);
+            }
+        }
+    }
+
+    bool Scene::SaveToFile(const std::string& filepath) const
+    {
+        try {
+            json j = Serialize();
+            std::ofstream file(filepath);
+            if (!file.is_open()) {
+                printf("[ERROR] Failed to open file for writing: %s\n", filepath.c_str());
+                return false;
+            }
+            file << j.dump(4);
+            printf("[SUCCESS] Scene saved to: %s\n", filepath.c_str());
+            return true;
+        }
+        catch (const std::exception& e) {
+            printf("[ERROR] Failed to save scene: %s\n", e.what());
+            return false;
+        }
+    }
+
+    bool Scene::LoadFromFile(const std::string& filepath)
+    {
+        try {
+            std::ifstream file(filepath);
+            if (!file.is_open()) {
+                printf("[ERROR] Failed to open file for reading: %s\n", filepath.c_str());
+                return false;
+            }
+            
+            json j = json::parse(file);
+            Deserialize(j);
+            printf("[SUCCESS] Scene loaded from: %s\n", filepath.c_str());
+            return true;
+        }
+        catch (const std::exception& e) {
+            printf("[ERROR] Failed to load scene: %s\n", e.what());
+            return false;
+        }
+    }
+} // namespace core
