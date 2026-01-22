@@ -475,13 +475,14 @@ namespace editor
             quadGO->SetParent(suzanneGO);
             quadGO->transform->position = glm::vec3(0, 0, -2.5f);
             quadGO->transform->scale = glm::vec3(5, 5, 1);
-            core::Mesh quadMesh = core::Mesh::GenerateQuad();
+            core::Model quadModel = core::AssimpLoader::loadModel("assets/models/primitives/quad.obj");
             auto quadTexture = std::make_shared<core::Texture>("assets/textures/CMGaTo_crop.png");
             auto quadMaterial = std::make_shared<core::Material>(m_textureShader->ID);
             quadMaterial->SetShaderPaths("assets/shaders/vertex.vert", "assets/shaders/texture.frag");
             quadMaterial->SetTexture("text", quadTexture, 0);
             auto quadRenderer = quadGO->AddComponent<core::Renderer>();
-            quadRenderer->SetMesh(quadMesh);
+            quadRenderer->SetModelPath("assets/models/primitives/quad.obj");
+            quadRenderer->SetMeshes(quadModel.GetMeshes());
             quadRenderer->SetMaterial(quadMaterial);
 
             auto lightGO = scene->CreateObject("Light");
