@@ -1,7 +1,7 @@
 #include "objectSystems/component.h"
-#include "ObjectSystems/Components/Light.h"
-#include "ObjectSystems/Components/Renderer.h"
-#include "ObjectSystems/GameObject.h"
+#include "objectSystems/components/Light.h"
+#include "objectSystems/components/Renderer.h"
+#include "objectSystems/gameObject.h"
 #include "rendering/shader.h"
 #include "Scene.h"
 #include <algorithm>
@@ -9,7 +9,6 @@
 #include <exception>
 #include <fstream>
 #include <glad/glad.h>
-#include <glm/glm.hpp>
 #include <memory>
 #include <string>
 #include <utility>
@@ -341,6 +340,8 @@ namespace core
         }
         
         m_roots.clear();
+        m_renderers.clear();
+        m_lights.clear();
         
         if (data.contains("roots")) {
             for (const auto& rootData : data["roots"]) {

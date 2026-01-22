@@ -89,6 +89,17 @@ namespace editor
         }
     }
 
+    static std::string SanitizeFilename(const std::string& name)
+    {
+        std::string safe = name;
+        const std::string illegal = R"(<>:"/\|?*)";
+        for (char c : illegal)
+        {
+            std::replace(safe.begin(), safe.end(), c, '_');
+        }
+        return safe;
+    }
+
     bool Editor::init(const char* glsl_version)
     {
         // Initialize GLFW
@@ -357,14 +368,14 @@ namespace editor
             if (ImGui::MenuItem("Save Scene", "Ctrl+S"))
             {
                 if (editorCtx.currentScene) {
-                    std::string filename = "assets/" + editorCtx.currentScene->GetName() + ".json";
+                    std::string filename = "assets/" + SanitizeFilename(editorCtx.currentScene->GetName()) + ".json";
                     editorCtx.currentScene->SaveToFile(filename);
                 }
             }
             if (ImGui::MenuItem("Load Scene", "Ctrl+O"))
             {
                 if (editorCtx.currentScene) {
-                    std::string filename = "assets/" + editorCtx.currentScene->GetName() + ".json";
+                    std::string filename = "assets/" + SanitizeFilename(editorCtx.currentScene->GetName()) + ".json";
                     editorCtx.currentScene->LoadFromFile(filename);
                 }
             }
@@ -459,8 +470,7 @@ namespace editor
             core::Model rockModel = core::AssimpLoader::loadModel("assets/models/rockModel.fbx");
 
             auto rockRenderer = rockGO->AddComponent<core::Renderer>();
-            rockRenderer->SetMeshes(rockModel.GetMeshes());
-            rockRenderer->SetModelPath("assets/models/rockModel.fbx");
+            rockRenderer->SetModel(rockModel);
 
             auto rockMaterial = std::make_shared<core::Material>(m_litSurfaceShader->ID);
             rockMaterial->SetShaderPaths("assets/shaders/vertex.vert", "assets/shaders/litFragment.frag");  
@@ -478,12 +488,13 @@ namespace editor
 
             auto suzanneGO = scene->CreateObject("Suzanne");
             core::Model suzanneModel = core::AssimpLoader::loadModel("assets/models/nonormalmonkey.obj");
+            
             auto suzanneMaterial = std::make_shared<core::Material>(m_litSurfaceShader->ID);
             suzanneMaterial->SetShaderPaths("assets/shaders/vertex.vert", "assets/shaders/litFragment.frag");
             suzanneMaterial->SetBool("useNormalMap", false);
+
             auto suzanneRenderer = suzanneGO->AddComponent<core::Renderer>();
-            suzanneRenderer->SetModelPath("assets/models/nonormalmonkey.obj");
-            suzanneRenderer->SetMeshes(suzanneModel.GetMeshes());
+            suzanneRenderer->SetModel(suzanneModel);
             suzanneRenderer->SetMaterial(suzanneMaterial);
 
             auto quadGO = scene->CreateObject("Quad");
@@ -496,8 +507,7 @@ namespace editor
             quadMaterial->SetShaderPaths("assets/shaders/vertex.vert", "assets/shaders/texture.frag");
             quadMaterial->SetTexture("text", quadTexture, 0);
             auto quadRenderer = quadGO->AddComponent<core::Renderer>();
-            quadRenderer->SetModelPath("assets/models/primitives/quad.obj");
-            quadRenderer->SetMeshes(quadModel.GetMeshes());
+            quadRenderer->SetModel(quadModel);
             quadRenderer->SetMaterial(quadMaterial);
 
             auto lightGO = scene->CreateObject("Light");
@@ -505,8 +515,7 @@ namespace editor
             auto lightMaterial = std::make_shared<core::Material>(m_lightBulbShader->ID);
             lightMaterial->SetShaderPaths("assets/shaders/vertex.vert", "assets/shaders/fragmentLightBulb.frag");
             auto lightRenderer = lightGO->AddComponent<core::Renderer>();
-            lightRenderer->SetModelPath("assets/models/lightBulbModel.obj");
-            lightRenderer->SetMeshes(lightModel.GetMeshes());
+            lightRenderer->SetModel(lightModel);
             lightRenderer->SetMaterial(lightMaterial);
             lightGO->transform->position = glm::vec3(2.0f, 2.0f, 2.0f);
             lightGO->transform->scale = glm::vec3(.1f, .1f, .1f);
@@ -521,8 +530,7 @@ namespace editor
             auto suzanneMaterial = std::make_shared<core::Material>(m_litSurfaceShader->ID);
             suzanneMaterial->SetShaderPaths("assets/shaders/vertex.vert", "assets/shaders/litFragment.frag"); 
             auto suzanneRenderer = suzanneGO->AddComponent<core::Renderer>();
-            suzanneRenderer->SetModelPath("assets/models/nonormalmonkey.obj"); 
-            suzanneRenderer->SetMeshes(suzanneModel.GetMeshes());
+            suzanneRenderer->SetModel(suzanneModel);
             suzanneRenderer->SetMaterial(suzanneMaterial);
 
             auto suzanneGO2 = scene->CreateObject("Suzanne2");
@@ -531,8 +539,7 @@ namespace editor
             auto suzanneMaterial2 = std::make_shared<core::Material>(m_litSurfaceShader->ID);
             suzanneMaterial2->SetShaderPaths("assets/shaders/vertex.vert", "assets/shaders/litFragment.frag"); 
             auto suzanneRenderer2 = suzanneGO2->AddComponent<core::Renderer>();
-            suzanneRenderer2->SetModelPath("assets/models/nonormalmonkey.obj"); 
-            suzanneRenderer2->SetMeshes(suzanneModel2.GetMeshes());
+            suzanneRenderer2->SetModel(suzanneModel2);
             suzanneRenderer2->SetMaterial(suzanneMaterial2);
 
             auto lightGO = scene->CreateObject("Light");
@@ -540,8 +547,7 @@ namespace editor
             auto lightMaterial = std::make_shared<core::Material>(m_lightBulbShader->ID);
             lightMaterial->SetShaderPaths("assets/shaders/vertex.vert", "assets/shaders/fragmentLightBulb.frag"); 
             auto lightRenderer = lightGO->AddComponent<core::Renderer>();
-            lightRenderer->SetModelPath("assets/models/lightBulbModel.obj"); 
-            lightRenderer->SetMeshes(lightModel.GetMeshes());
+            lightRenderer->SetModel(lightModel);
             lightRenderer->SetMaterial(lightMaterial);
             lightGO->transform->position = glm::vec3(2.0f, 2.0f, 2.0f);
             lightGO->transform->scale = glm::vec3(.1f, .1f, .1f);
@@ -553,8 +559,7 @@ namespace editor
             auto lightMaterial2 = std::make_shared<core::Material>(m_lightBulbShader->ID);
             lightMaterial2->SetShaderPaths("assets/shaders/vertex.vert", "assets/shaders/fragmentLightBulb.frag"); 
             auto lightRenderer2 = lightGO2->AddComponent<core::Renderer>();
-            lightRenderer2->SetModelPath("assets/models/lightBulbModel.obj"); 
-            lightRenderer2->SetMeshes(lightModel2.GetMeshes());
+            lightRenderer2->SetModel(lightModel2);
             lightRenderer2->SetMaterial(lightMaterial2);
             lightGO2->transform->position = glm::vec3(-2.0f, 0, -2.0f);
             lightGO2->transform->scale = glm::vec3(.1f, .1f, .1f);
@@ -567,14 +572,16 @@ namespace editor
 
     bool Editor::tryLoadSavedScene()
     {
-        // TODO: When you implement serialization, check for saved scene file here
-        // For now, always return false to load default scenes
-
-        // Example future implementation:
-        // if (std::filesystem::exists("saved_scene.json")) {
-        //     return deserializeAndLoadScene("saved_scene.json");
-        // }
-
+        printf("[EDITOR] Attempting to load saved scene...\n");
+        if (editorCtx.currentScene)
+        {
+            printf("[EDITOR] Current scene set to: %s\n", editorCtx.currentScene->GetName().c_str());
+            std::string filepath = "assets/" + SanitizeFilename(editorCtx.currentScene->GetName()) + ".json";
+            if (std::filesystem::exists(filepath))
+            {
+                return editorCtx.currentScene->LoadFromFile(filepath);
+            }
+        }
         return false;
     }
 

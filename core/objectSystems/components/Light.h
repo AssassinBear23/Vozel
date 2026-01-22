@@ -179,7 +179,7 @@ namespace core
         /// </summary>
         void Deserialize(const json& data) override
         {
-            if (data.contains("color"))
+            if (data.contains("color") && data["color"].is_array() && data["color"].size() >= 4)
             {
                 auto c = data["color"];
                 color = glm::vec4(c[0], c[1], c[2], c[3]);
