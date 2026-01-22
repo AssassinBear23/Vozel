@@ -1,10 +1,13 @@
 #pragma once
+
+#include "Rendering/shader.h"
 #include <glad/glad.h>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
-#include "Rendering/shader.h"
+
 
 namespace core // Forward declaration
 {
@@ -16,6 +19,8 @@ namespace core // Forward declaration
 
 namespace core
 {
+    using json = nlohmann::json;
+
     /// <summary>
     /// A collection of root GameObjects.
     /// </summary>
@@ -93,6 +98,9 @@ namespace core
         const std::vector<std::shared_ptr<Renderer>>& GetRenderers() const { return m_renderers; }
         const std::vector<std::shared_ptr<Light>>& GetLights() const { return m_lights; }
 
+        bool SaveToFile(const std::string& filepath) const;
+        bool LoadFromFile(const std::string& filepath);
+
     private:
         /// <summary>
         /// Generic registration for components
@@ -120,6 +128,9 @@ namespace core
         void RenderFinalScene(const glm::mat4& view, const glm::mat4& projection);
         void GenerateDepthMaps(int numLights, int width_resolution, int height_resolution);
 
+        void Deserialize(const json& data);
+        json Serialize() const;
+
         /// <summary>
         /// Calculate the world matrix for a GameObject.
         /// </summary>
@@ -138,7 +149,7 @@ namespace core
         std::vector<unsigned int> m_depthMaps;
         const int SHADOW_WIDTH = 1024;
         const int SHADOW_HEIGHT = 1024;
-        float m_bloomThreshold = 1.0f;  // Default bloom threshold
+        float m_bloomThreshold = 1.0f;
     };
 
 } // namespace core

@@ -1,11 +1,15 @@
 #pragma once
+
 #include "Object.h"
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <string>
 
 namespace core {
 
     class GameObject; // forward
+
+    using json = nlohmann::json;
 
     /// <summary>
     /// Base class for components that attach to a GameObject.
@@ -38,6 +42,10 @@ namespace core {
         /// Returns a shared_ptr to the owner, or null if it no longer exists.
         /// </summary>
         std::shared_ptr<GameObject> GetOwner() const;
+
+        // Serialization
+        virtual json Serialize() const = 0;
+        virtual void Deserialize(const json& data) = 0;
 
         virtual void DrawGui();
 

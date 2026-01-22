@@ -1,14 +1,18 @@
 #pragma once
 
+#include "Rendering/texture.h"
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
-#include "Rendering/texture.h"
 
 namespace core
 {
+    // Type alias
+    using json = nlohmann::json;
+
     class Material {
     public:
         Material() = default;
@@ -103,8 +107,40 @@ namespace core
         /// </summary>
         void Use() const;
 
+        /// <summary>
+        /// Sets the shader paths for this material (for serialization).
+        /// </summary>
+        void SetShaderPaths(const std::string& vertexPath, const std::string& fragmentPath) {
+            m_vertexShaderPath = vertexPath;
+            m_fragmentShaderPath = fragmentPath;
+        }
+
+        /// <summary>
+        /// Gets the vertex shader path.
+        /// </summary>
+        const std::string& GetVertexShaderPath() const { return m_vertexShaderPath; }
+
+        /// <summary>
+        /// Gets the fragment shader path.
+        /// </summary>
+        const std::string& GetFragmentShaderPath() const { return m_fragmentShaderPath; }
+
+        /// <summary>
+        /// Serializes the material to JSON (saves shader paths, texture paths, uniforms).
+        /// </summary>
+        json Serialize() const;
+
+        /// <summary>
+        /// Deserializes the material from JSON (loads shaders, textures, sets uniforms).
+        /// </summary>
+        void Deserialize(const json& data);
+
     private:
         GLuint m_shaderProgram = 0;
+        
+        // Shader paths for serialization
+        std::string m_vertexShaderPath;
+        std::string m_fragmentShaderPath;
         
         struct TextureData
         {

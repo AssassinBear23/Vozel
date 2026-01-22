@@ -1,8 +1,11 @@
 #include "../../scene.h"
 #include "../ComponentFactory.h"
 #include "../GameObject.h"
+#include "core/assimpLoader.h"
+#include "core/model.h"
 #include "Renderer.h"
 #include <core/ObjectSystems/component.h>
+#include <cstdio>
 #include <glad/glad.h>
 #include <imgui.h>
 #include <memory>
@@ -48,5 +51,27 @@ namespace core
         Component::OnDetach();
     }
 
+    void Renderer::Deserialize(const json& data)
+    {
+        if (data.contains("modelPath")) {
+            m_modelPath = data["modelPath"].get<std::string>();
+            
+            if (!m_modelPath.empty()) {
+                try {
+                    Model model = AssimpLoader::loadModel(m_modelPath);
+                    SetMeshes(model.GetMeshes());
+                    printf("[Renderer] Loaded model: %s\n", m_modelPath.c_str());
+                }
+                catch (const std::exception& e) {
+                    printf("[Renderer] Failed to load model '%s': %s\n", m_modelPath.c_str(), e.what());
+                }
+            }
+        }
+        
+        if (data.contains("material")) {
+            m_material = std::make_shared<Material>();
+            m_material->Deserialize(data["material"]);
+        }
+    }
 
 } // namespace core

@@ -1,7 +1,10 @@
 #pragma once
+
 #include "Components/Transform.h"
 #include "Object.h"
+#include <algorithm>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
 
@@ -10,6 +13,8 @@ namespace core {
     class Component; // forward
     class Scene;
 
+    // Type alias for convenience
+    using json = nlohmann::json;
 
     /// <summary>
     /// A object present in the scene that can have components and child GameObjects.
@@ -197,9 +202,17 @@ namespace core {
         /// <returns>Shared pointer to the scene. Done by locking the weak pointer.</returns>
         const std::shared_ptr<Scene> GetScene() const { return m_scene.lock(); }
 
-        // Json Serialization
-        void Serialize(nlohmann::json& out) const override;
-        void Deserialize(const nlohmann::json& in) override;
+        /// <summary>
+        /// Serializes this GameObject, its components, and its children to JSON.
+        /// </summary>
+        json Serialize() const;
+
+        /// <summary>
+        /// Deserializes a GameObject from JSON data.
+        /// Creates components using ComponentFactory and recursively deserializes children.
+        /// </summary>
+        /// <param name="data">JSON data containing GameObject information</param>
+        void Deserialize(const json& data);
 
     private:
         /// <summary>
@@ -228,3 +241,4 @@ namespace core {
 
 
 } // namespace core
+

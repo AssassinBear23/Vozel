@@ -1,8 +1,10 @@
 #include "core/assimpLoader.h"
+#include "core/camera.h"
 #include "core/material.h"
 #include "core/model.h"
 #include "core/objectSystems/components/Light.h"
 #include "core/objectSystems/components/Renderer.h"
+#include "core/rendering/frameBuffer.h"
 #include "core/rendering/mesh.h"
 #include "core/rendering/texture.h"
 #include "core/sceneManager.h"
@@ -13,8 +15,6 @@
 #include "panels/inspectorPanel.h"
 #include "panels/postProcessingPanel.h"
 #include "panels/ViewportPanel.h"
-#include <core/camera.h>
-#include <core/rendering/frameBuffer.h>
 #include <cstdio>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -30,10 +30,10 @@ namespace editor
     // Define the static member
     EditorContext Editor::editorCtx;
 
-    Editor::~Editor() 
-    { 
-        if (m_initialized) 
-            shutdown(); 
+    Editor::~Editor()
+    {
+        if (m_initialized)
+            shutdown();
     }
 
     static void APIENTRY glDebugOutput(GLenum source,
@@ -89,6 +89,17 @@ namespace editor
         }
     }
 
+    static std::string SanitizeFilename(const std::string& name)
+    {
+        std::string safe = name;
+        const std::string illegal = R"(<>:"/\|?*)";
+        for (char c : illegal)
+        {
+            std::replace(safe.begin(), safe.end(), c, '_');
+        }
+        return safe;
+    }
+
     bool Editor::init(const char* glsl_version)
     {
         // Initialize GLFW
@@ -121,7 +132,7 @@ namespace editor
         }
 
         // Setup OpenGL debug callback
-        int flags; 
+        int flags;
         glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
         if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
         {
@@ -172,13 +183,13 @@ namespace editor
 
         // Initialize editor camera
         m_editorCamera = std::make_unique<core::Camera>(
-            glm::vec3(0.0f, 0.0f, 10.0f), 
+            glm::vec3(0.0f, 0.0f, 10.0f),
             glm::vec3(0.0f, 1.0f, 0.0f)
         );
 
         // Create scene render framebuffer
         m_sceneRenderBuffer = std::make_unique<core::FrameBuffer>(
-            "SceneFBO", 
+            "SceneFBO",
             core::FrameBufferSpecifications{
                 800, 600,
                 core::AttachmentType::COLOR_DEPTH,
@@ -308,7 +319,7 @@ namespace editor
             if (m_postProcessingManager && viewportFrameBuffer)
             {
                 m_postProcessingManager->ProcessStack(
-                    *m_sceneRenderBuffer, 
+                    *m_sceneRenderBuffer,
                     *viewportFrameBuffer,
                     vw, vh
                 );
@@ -354,10 +365,25 @@ namespace editor
 
         if (ImGui::BeginMenu("File"))
         {
-            if (ImGui::MenuItem("Exit")) 
-            { 
+            if (ImGui::MenuItem("Save Scene", "Ctrl+S"))
+            {
+                if (editorCtx.currentScene) {
+                    std::string filename = "assets/" + SanitizeFilename(editorCtx.currentScene->GetName()) + ".json";
+                    editorCtx.currentScene->SaveToFile(filename);
+                }
+            }
+            if (ImGui::MenuItem("Load Scene", "Ctrl+O"))
+            {
+                if (editorCtx.currentScene) {
+                    std::string filename = "assets/" + SanitizeFilename(editorCtx.currentScene->GetName()) + ".json";
+                    editorCtx.currentScene->LoadFromFile(filename);
+                }
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Exit"))
+            {
                 m_isRunning = false;
-                glfwSetWindowShouldClose(m_window, true); 
+                glfwSetWindowShouldClose(m_window, true);
             }
             ImGui::EndMenu();
         }
@@ -442,9 +468,13 @@ namespace editor
         editorCtx.sceneManager->RegisterScene("Default Scene 1", [this](auto scene) {
             auto rockGO = scene->CreateObject("Rock");
             core::Model rockModel = core::AssimpLoader::loadModel("assets/models/rockModel.fbx");
-            auto rockMaterial = std::make_shared<core::Material>(m_litSurfaceShader->ID);
 
             auto rockRenderer = rockGO->AddComponent<core::Renderer>();
+            rockRenderer->SetModel(rockModel);
+
+            auto rockMaterial = std::make_shared<core::Material>(m_litSurfaceShader->ID);
+            rockMaterial->SetShaderPaths("assets/shaders/vertex.vert", "assets/shaders/litFragment.frag");  
+
             auto rockTexture = std::make_shared<core::Texture>("assets/textures/rockTexture.jpeg");
             auto rockAO = std::make_shared<core::Texture>("assets/textures/rockAO.jpeg");
             auto rockNormal = std::make_shared<core::Texture>("assets/textures/rockNormal.jpeg");
@@ -452,36 +482,40 @@ namespace editor
             rockMaterial->SetTexture("aoMap", rockAO, 1);
             rockMaterial->SetTexture("normalMap", rockNormal, 2);
             rockMaterial->SetBool("useNormalMap", true);
-            rockRenderer->SetMeshes(rockModel.GetMeshes());
             rockRenderer->SetMaterial(rockMaterial);
             rockGO->transform->rotation = glm::vec3(-90, 0, 0);
             rockGO->transform->scale = glm::vec3(0.3f, 0.3f, 0.3f);
 
             auto suzanneGO = scene->CreateObject("Suzanne");
             core::Model suzanneModel = core::AssimpLoader::loadModel("assets/models/nonormalmonkey.obj");
+            
             auto suzanneMaterial = std::make_shared<core::Material>(m_litSurfaceShader->ID);
+            suzanneMaterial->SetShaderPaths("assets/shaders/vertex.vert", "assets/shaders/litFragment.frag");
             suzanneMaterial->SetBool("useNormalMap", false);
+
             auto suzanneRenderer = suzanneGO->AddComponent<core::Renderer>();
-            suzanneRenderer->SetMeshes(suzanneModel.GetMeshes());
+            suzanneRenderer->SetModel(suzanneModel);
             suzanneRenderer->SetMaterial(suzanneMaterial);
 
             auto quadGO = scene->CreateObject("Quad");
             quadGO->SetParent(suzanneGO);
             quadGO->transform->position = glm::vec3(0, 0, -2.5f);
             quadGO->transform->scale = glm::vec3(5, 5, 1);
-            core::Mesh quadMesh = core::Mesh::GenerateQuad();
+            core::Model quadModel = core::AssimpLoader::loadModel("assets/models/primitives/quad.obj");
             auto quadTexture = std::make_shared<core::Texture>("assets/textures/CMGaTo_crop.png");
             auto quadMaterial = std::make_shared<core::Material>(m_textureShader->ID);
+            quadMaterial->SetShaderPaths("assets/shaders/vertex.vert", "assets/shaders/texture.frag");
             quadMaterial->SetTexture("text", quadTexture, 0);
             auto quadRenderer = quadGO->AddComponent<core::Renderer>();
-            quadRenderer->SetMesh(quadMesh);
+            quadRenderer->SetModel(quadModel);
             quadRenderer->SetMaterial(quadMaterial);
 
             auto lightGO = scene->CreateObject("Light");
             core::Model lightModel = core::AssimpLoader::loadModel("assets/models/lightBulbModel.obj");
             auto lightMaterial = std::make_shared<core::Material>(m_lightBulbShader->ID);
+            lightMaterial->SetShaderPaths("assets/shaders/vertex.vert", "assets/shaders/fragmentLightBulb.frag");
             auto lightRenderer = lightGO->AddComponent<core::Renderer>();
-            lightRenderer->SetMeshes(lightModel.GetMeshes());
+            lightRenderer->SetModel(lightModel);
             lightRenderer->SetMaterial(lightMaterial);
             lightGO->transform->position = glm::vec3(2.0f, 2.0f, 2.0f);
             lightGO->transform->scale = glm::vec3(.1f, .1f, .1f);
@@ -494,23 +528,26 @@ namespace editor
             auto suzanneGO = scene->CreateObject("Suzanne1");
             core::Model suzanneModel = core::AssimpLoader::loadModel("assets/models/nonormalmonkey.obj");
             auto suzanneMaterial = std::make_shared<core::Material>(m_litSurfaceShader->ID);
+            suzanneMaterial->SetShaderPaths("assets/shaders/vertex.vert", "assets/shaders/litFragment.frag"); 
             auto suzanneRenderer = suzanneGO->AddComponent<core::Renderer>();
-            suzanneRenderer->SetMeshes(suzanneModel.GetMeshes());
+            suzanneRenderer->SetModel(suzanneModel);
             suzanneRenderer->SetMaterial(suzanneMaterial);
 
             auto suzanneGO2 = scene->CreateObject("Suzanne2");
             suzanneGO2->transform->position = glm::vec3(3, 0, 0);
             core::Model suzanneModel2 = core::AssimpLoader::loadModel("assets/models/nonormalmonkey.obj");
             auto suzanneMaterial2 = std::make_shared<core::Material>(m_litSurfaceShader->ID);
+            suzanneMaterial2->SetShaderPaths("assets/shaders/vertex.vert", "assets/shaders/litFragment.frag"); 
             auto suzanneRenderer2 = suzanneGO2->AddComponent<core::Renderer>();
-            suzanneRenderer2->SetMeshes(suzanneModel2.GetMeshes());
+            suzanneRenderer2->SetModel(suzanneModel2);
             suzanneRenderer2->SetMaterial(suzanneMaterial2);
 
             auto lightGO = scene->CreateObject("Light");
             core::Model lightModel = core::AssimpLoader::loadModel("assets/models/lightBulbModel.obj");
             auto lightMaterial = std::make_shared<core::Material>(m_lightBulbShader->ID);
+            lightMaterial->SetShaderPaths("assets/shaders/vertex.vert", "assets/shaders/fragmentLightBulb.frag"); 
             auto lightRenderer = lightGO->AddComponent<core::Renderer>();
-            lightRenderer->SetMeshes(lightModel.GetMeshes());
+            lightRenderer->SetModel(lightModel);
             lightRenderer->SetMaterial(lightMaterial);
             lightGO->transform->position = glm::vec3(2.0f, 2.0f, 2.0f);
             lightGO->transform->scale = glm::vec3(.1f, .1f, .1f);
@@ -520,8 +557,9 @@ namespace editor
             auto lightGO2 = scene->CreateObject("Light2");
             core::Model lightModel2 = core::AssimpLoader::loadModel("assets/models/lightBulbModel.obj");
             auto lightMaterial2 = std::make_shared<core::Material>(m_lightBulbShader->ID);
+            lightMaterial2->SetShaderPaths("assets/shaders/vertex.vert", "assets/shaders/fragmentLightBulb.frag"); 
             auto lightRenderer2 = lightGO2->AddComponent<core::Renderer>();
-            lightRenderer2->SetMeshes(lightModel2.GetMeshes());
+            lightRenderer2->SetModel(lightModel2);
             lightRenderer2->SetMaterial(lightMaterial2);
             lightGO2->transform->position = glm::vec3(-2.0f, 0, -2.0f);
             lightGO2->transform->scale = glm::vec3(.1f, .1f, .1f);
@@ -534,14 +572,16 @@ namespace editor
 
     bool Editor::tryLoadSavedScene()
     {
-        // TODO: When you implement serialization, check for saved scene file here
-        // For now, always return false to load default scenes
-        
-        // Example future implementation:
-        // if (std::filesystem::exists("saved_scene.json")) {
-        //     return deserializeAndLoadScene("saved_scene.json");
-        // }
-        
+        printf("[EDITOR] Attempting to load saved scene...\n");
+        if (editorCtx.currentScene)
+        {
+            printf("[EDITOR] Current scene set to: %s\n", editorCtx.currentScene->GetName().c_str());
+            std::string filepath = "assets/" + SanitizeFilename(editorCtx.currentScene->GetName()) + ".json";
+            if (std::filesystem::exists(filepath))
+            {
+                return editorCtx.currentScene->LoadFromFile(filepath);
+            }
+        }
         return false;
     }
 

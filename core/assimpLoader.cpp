@@ -1,8 +1,17 @@
 #include "assimpLoader.h"
+#include "model.h"
 #include "Rendering/mesh.h"
+#include "rendering/vertex.h"
 #include <assimp/Importer.hpp>
-#include <assimp/scene.h>
+#include <assimp/mesh.h>
 #include <assimp/postprocess.h>
+#include <assimp/scene.h>
+#include <cstdio>
+#include <glad/glad.h>
+#include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <string>
+#include <vector>
 
 namespace core {
     Model AssimpLoader::loadModel(const std::string& path) {
@@ -31,24 +40,24 @@ namespace core {
             return Model({});
         }
 
-        printf("Model loaded successfully: %s\n", path.c_str());
+        /*printf("Model loaded successfully: %s\n", path.c_str());
         printf("  - Number of meshes: %d\n", scene->mNumMeshes);
         printf("  - Number of materials: %d\n", scene->mNumMaterials);
-        printf("  - Has animations: %s\n", scene->HasAnimations() ? "YES" : "NO");
-        
+        printf("  - Has animations: %s\n", scene->HasAnimations() ? "YES" : "NO");*/
+
         std::string directory = path.substr(0, path.find_last_of('/'));
         std::vector<Mesh> meshes;
         processNode(scene->mRootNode, scene, meshes);
         
-        printf("  - Processed meshes: %zu\n", meshes.size());
+        //printf("  - Processed meshes: %zu\n", meshes.size());
         
-        return Model(meshes);
+        return Model(meshes, path);  // Pass the path to Model constructor
     }
 
     void AssimpLoader::processNode(aiNode *node, const aiScene *scene, std::vector<Mesh>& meshes) {
-        printf("Processing node: %s (meshes: %d, children: %d)\n", 
-               node->mName.C_Str(), node->mNumMeshes, node->mNumChildren);
-        
+        /*printf("Processing node: %s (meshes: %d, children: %d)\n", 
+               node->mName.C_Str(), node->mNumMeshes, node->mNumChildren);*/
+
         for(unsigned int i = 0; i < node->mNumMeshes; i++)
         {
             aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
@@ -64,14 +73,14 @@ namespace core {
         std::vector<Vertex> vertices;
         std::vector<GLuint> indices;
         
-        printf("\n=== PROCESSING MESH ===\n");
+        /*printf("\n=== PROCESSING MESH ===\n");
         printf("Mesh name: %s\n", mesh->mName.C_Str());
         printf("Vertices: %d\n", mesh->mNumVertices);
         printf("Faces: %d\n", mesh->mNumFaces);
         printf("Primitive types: %d\n", mesh->mPrimitiveTypes);
         printf("Has UVs: %s\n", mesh->HasTextureCoords(0) ? "YES" : "NO");
         printf("Has Normals: %s\n", mesh->HasNormals() ? "YES" : "NO");
-        printf("Has Tangents: %s\n", mesh->HasTangentsAndBitangents() ? "YES" : "NO");
+        printf("Has Tangents: %s\n", mesh->HasTangentsAndBitangents() ? "YES" : "NO");*/
         
         // Reserve memory for efficiency
         vertices.reserve(mesh->mNumVertices);
@@ -132,13 +141,13 @@ namespace core {
             }
         }
         
-        printf("Final vertex count: %zu\n", vertices.size());
+        /*printf("Final vertex count: %zu\n", vertices.size());
         printf("Final index count: %zu\n", indices.size());
-        printf("Expected triangles: %zu\n", indices.size() / 3);
+        printf("Expected triangles: %zu\n", indices.size() / 3);*/
         if (skippedFaces > 0) {
             printf("Skipped %d invalid faces\n", skippedFaces);
         }
-        printf("=======================\n\n");
+        //printf("=======================\n\n");
         
         return Mesh(vertices, indices);
     }

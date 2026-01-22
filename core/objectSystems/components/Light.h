@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Component.h"
 #include "../../property.h"
+#include "../Component.h"
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 #include <memory>
@@ -161,6 +161,38 @@ namespace core
         /// <returns>The RGBA color vector.</returns>
         glm::vec4 GetColor() const { return color.Get(); }
         
+        /// <summary>
+        /// Serializes the Light component to JSON.
+        /// </summary>
+        json Serialize() const override
+        {
+            json j;
+            auto c = color.Get();
+            j["color"] = { c.x, c.y, c.z, c.w };
+            j["intensity"] = intensity.Get();
+            j["lightType"] = static_cast<int>(lightType.Get());
+            return j;
+        }
+
+        /// <summary>
+        /// Deserializes the Light component from JSON.
+        /// </summary>
+        void Deserialize(const json& data) override
+        {
+            if (data.contains("color") && data["color"].is_array() && data["color"].size() >= 4)
+            {
+                auto c = data["color"];
+                color = glm::vec4(c[0], c[1], c[2], c[3]);
+            }
+            if (data.contains("intensity"))
+            {
+                intensity = data["intensity"].get<float>();
+            }
+            if (data.contains("lightType"))
+            {
+                lightType = static_cast<LightType>(data["lightType"].get<int>());
+            }
+        }
     private:
         /// <summary>
         /// Updates the cached renderer's material color when the light color changes.

@@ -6,6 +6,7 @@ namespace core {
     Texture::Texture(const std::string &path) {
         glGenTextures(1, &id);
         int width, height, nrComponents;
+        m_path = path;
         if (unsigned char *data = stbi_load(path.c_str(), &width, &height, &nrComponents, 0)) {
             GLenum format = 0;
             if (nrComponents == 1) {
@@ -28,13 +29,8 @@ namespace core {
 
             glBindTexture(GL_TEXTURE_2D, 0);
             stbi_image_free(data);
-        } else {
+        } else
             printf("Texture failed to load at path: %s\n", path.c_str());
-            stbi_image_free(data);
-        }
-    }
-
-    GLuint Texture::getId() {
-        return id;
+        
     }
 }

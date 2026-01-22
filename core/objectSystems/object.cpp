@@ -40,18 +40,4 @@ namespace core
     }
 
     bool Object::IsDestroyed() const { return m_destroyed; }
-
-    void Object::Serialize(nlohmann::json& out) const
-    {
-        out["name"] = name;
-        out["enabled"] = isEnabled.Get();
-    }
-
-    void Object::Deserialize(const nlohmann::json& in)
-    {
-        if (in.contains("name"))
-            SetName(in["name"].get<std::string>());
-        if (in.contains("enabled"))
-            isEnabled = in["enabled"].get<bool>();
-    }
 } // namespace core

@@ -1,10 +1,11 @@
 #pragma once
 
-#include "scene.h"
 #include <functional>
 
 namespace core
 {
+    class Scene;
+
     /// <summary>
     /// Manages scene registration and lifecycle.
     /// </summary>
@@ -76,4 +77,4 @@ namespace core
         /// </summary>
         std::unordered_map<std::string, SceneFactory> m_sceneFactories;
     };
-}
+} // namespace core
