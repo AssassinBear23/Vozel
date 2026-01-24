@@ -85,12 +85,42 @@ namespace core {
         }
     }
 
+    void GameObject::SaveAndDisableComponents()
+    {
+        m_savedComponentStates.clear();
+        m_savedComponentStates.reserve(m_components.size());
+        
+        for (const auto& component : m_components) {
+            // Save the current state
+            m_savedComponentStates.push_back(component->isEnabled.Get());
+            // Disable the component
+            component->isEnabled = false;
+        }
+    }
+
+    void GameObject::RestoreComponentStates()
+    {
+        // Restore each component to its saved state
+        for (size_t i = 0; i < m_components.size() && i < m_savedComponentStates.size(); ++i) {
+            m_components[i]->isEnabled = m_savedComponentStates[i];
+        }
+        m_savedComponentStates.clear();
+    }
+
     void GameObject::OnEnabledChanged(bool newValue)
     {
         // Call base implementation
         Object::OnEnabledChanged(newValue);
+        
         // Propagate to children
         SetChildrenEnabledState(newValue);
+        
+        // Handle components with state preservation
+        if (newValue) {
+            RestoreComponentStates();
+        } else {
+            SaveAndDisableComponents();
+        }
     }
 
     json GameObject::Serialize() const
@@ -105,6 +135,7 @@ namespace core {
             json compData;
             compData["type"] = comp->GetTypeName();
             compData["data"] = comp->Serialize();
+            compData["enabled"] = comp->isEnabled.Get(); // Save component's individual enabled state
             components.push_back(compData);
         }
         j["components"] = components;
@@ -139,6 +170,9 @@ namespace core {
                     if (transform && compData.contains("data")) {
                         transform->Deserialize(compData["data"]);
                     }
+                    if (compData.contains("enabled")) {
+                        transform->isEnabled = compData["enabled"].get<bool>();
+                    }
                 }
                 else {
                     // Create component using factory
@@ -148,6 +182,10 @@ namespace core {
                             component->Deserialize(compData["data"]);
                         }
                         AddComponent(component);
+                        // Restore component's individual enabled state
+                        if (compData.contains("enabled")) {
+                            component->isEnabled = compData["enabled"].get<bool>();
+                        }
                     }
                     else {
                         printf("[WARNING] Failed to create component type: %s\n", typeName.c_str());

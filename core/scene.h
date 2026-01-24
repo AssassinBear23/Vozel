@@ -124,7 +124,7 @@ namespace core
             container.erase(std::remove(container.begin(), container.end(), component), container.end());
         }
 
-        void RenderShadowMap(int lightIndex);
+        void RenderShadowMap(int activeIndex, size_t lightIdx);
         void RenderFinalScene(const glm::mat4& view, const glm::mat4& projection);
         void GenerateDepthMaps(int numLights, int width_resolution, int height_resolution);
 

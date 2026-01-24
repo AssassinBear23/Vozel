@@ -230,6 +230,8 @@ namespace core {
         }
 
         void SetChildrenEnabledState(bool enabled);
+        void SaveAndDisableComponents();
+        void RestoreComponentStates();
         void OnEnabledChanged(bool newValue) override;
 
 
@@ -237,6 +239,9 @@ namespace core {
         std::vector<std::shared_ptr<GameObject>> m_children;
         std::vector<std::shared_ptr<Component>> m_components;
         std::weak_ptr<Scene> m_scene;
+        
+        // Store the original enabled state of each component when GameObject is disabled
+        std::vector<bool> m_savedComponentStates;
     };
 
 

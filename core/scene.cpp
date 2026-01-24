@@ -56,16 +56,42 @@ namespace core
 
     void Scene::Render(const glm::mat4& view, const glm::mat4& projection)
     {
-        
         if (m_renderers.empty())
             return;
 
         // Setting light data UBO
         LightData lightData = {};
-        lightData.numLights = static_cast<int>(m_lights.size() < 4 ? m_lights.size() : 4);
+        
+        // Use a separate counter for active lights
+        int activeLightCount = 0;
+        std::vector<size_t> activeLightIndices; // Track original indices for shadow maps
+        
+        for (size_t i = 0; i < m_lights.size() && activeLightCount < 4; ++i)
+        {
+            auto light = m_lights[i];
+            if (!light || !light->isEnabled) continue;
 
-        if (m_depthMaps.size() < lightData.numLights)
-            GenerateDepthMaps(lightData.numLights, SHADOW_WIDTH, SHADOW_HEIGHT);
+            auto lightGO = light->GetOwner();
+            if (!lightGO || !lightGO->isEnabled || !lightGO->transform) continue;
+
+            // Pack light data densely using activeLightCount as index
+            lightData.positions[activeLightCount] = glm::vec4(lightGO->transform->position, 1.0f);
+            lightData.directions[activeLightCount] = glm::vec4(lightGO->transform->forward(), 0.0f);
+            
+            glm::vec4 lightColor = light->GetColor();
+            lightColor.w = light->intensity.Get();
+            lightData.colors[activeLightCount] = lightColor;
+            
+            lightData.lightTypes[activeLightCount] = glm::ivec4(ToInt(light->lightType), 0, 0, 0);
+
+            activeLightIndices.push_back(i);
+            activeLightCount++;
+        }
+        
+        lightData.numLights = activeLightCount; // Accurate count of enabled lights
+
+        if (m_depthMaps.size() < activeLightCount)
+            GenerateDepthMaps(activeLightCount, SHADOW_WIDTH, SHADOW_HEIGHT);
 
         // Save current viewport dimensions AND framebuffer binding
         GLint viewport[4];
@@ -73,25 +99,26 @@ namespace core
         glGetIntegerv(GL_VIEWPORT, viewport);
         glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previousFramebuffer);
 
-        // Pass 1: Render shadow maps
-        for (size_t i = 0; i < m_lights.size() && i < 4; ++i)
+        // Pass 1: Render shadow maps for active lights
+        for (int activeIdx = 0; activeIdx < activeLightCount; ++activeIdx)
         {
-            auto light = m_lights[i];
+            size_t originalIdx = activeLightIndices[activeIdx];
+            auto light = m_lights[originalIdx];
             if (!light || !light->isEnabled) continue;
 
             auto lightGO = light->GetOwner();
             if (!lightGO || !lightGO->transform) continue;
 
-            lightData.positions[i] = glm::vec4(lightGO->transform->position, 1.0f);
-            lightData.directions[i] = glm::vec4(lightGO->transform->forward(), 0.0f);
+            lightData.positions[activeIdx] = glm::vec4(lightGO->transform->position, 1.0f);
+            lightData.directions[activeIdx] = glm::vec4(lightGO->transform->forward(), 0.0f);
             
             glm::vec4 lightColor = light->GetColor();
-            lightColor.w = light->intensity.Get(); // Store intensity in alpha channel
-            lightData.colors[i] = lightColor;
+            lightColor.w = light->intensity.Get();
+            lightData.colors[activeIdx] = lightColor;
             
-            lightData.lightTypes[i] = glm::ivec4(ToInt(light->lightType.Get()), 0, 0, 0);
+            lightData.lightTypes[activeIdx] = glm::ivec4(ToInt(light->lightType), 0, 0, 0);
 
-            RenderShadowMap(i);
+            RenderShadowMap(activeIdx, originalIdx);
         }
 
         // Restore viewport AND framebuffer
@@ -117,14 +144,14 @@ namespace core
             printf("[ERROR] OpenGL error after RenderFinalScene: 0x%x\n", err);
     }
 
-    void Scene::RenderShadowMap(int lightIndex)
+    void Scene::RenderShadowMap(int activeIdx, size_t lightIdx)
     {
-        if (lightIndex >= m_lights.size()) return;
-        auto light = m_lights[lightIndex];
+        if (lightIdx >= m_lights.size()) return;
+        auto light = m_lights[lightIdx];
         if (!light || !light->isEnabled) return;
 
         auto lightGO = light->GetOwner();
-        if (!lightGO || !lightGO->transform) return;
+        if (!lightGO || !lightGO->isEnabled || !lightGO->transform) return;
 
         glm::mat4 lightProjection, lightView, lightSpaceMatrix;
         float near_plane = 1.0f, far_plane = 25.0f;
@@ -151,7 +178,7 @@ namespace core
         depthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-        glBindFramebuffer(GL_FRAMEBUFFER, m_depthMapFBOs[lightIndex]);
+        glBindFramebuffer(GL_FRAMEBUFFER, m_depthMapFBOs[activeIdx]);
         
         // Check framebuffer status
         GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -164,7 +191,6 @@ namespace core
 
         glCullFace(GL_FRONT);
 
-        // int renderedCount = 0;
         for (const auto& renderer : m_renderers)
         {
             if (!renderer) continue;
@@ -176,13 +202,12 @@ namespace core
             for (auto& mesh : renderer->GetMeshes())
             {
                 mesh.Render(GL_TRIANGLES);
-                // renderedCount++;
             }
         }
 
         glCullFace(GL_BACK);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        m_lightSpaceMatrices[lightIndex] = lightSpaceMatrix;
+        m_lightSpaceMatrices[activeIdx] = lightSpaceMatrix;
     }
 
     void Scene::RenderFinalScene(const glm::mat4& view, const glm::mat4& projection)
