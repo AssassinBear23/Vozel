@@ -81,6 +81,8 @@ namespace editor
     static void DrawGameObjectNode(const std::shared_ptr<core::GameObject>& go, EditorContext& ctx) {
         if (!go) return;
 
+        ImGui::PushID(go.get());
+
         ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
 
         // Highlight if selected
@@ -109,6 +111,8 @@ namespace editor
             }
             ImGui::TreePop();
         }
+
+        ImGui::PopID();
     }
 
     void HierarchyPanel::draw(EditorContext& ctx) {
