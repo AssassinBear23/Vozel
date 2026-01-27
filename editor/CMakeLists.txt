@@ -9,6 +9,10 @@ add_library(EditorLib STATIC
     panels/heirarchyPanel.cpp
     panels/inspectorPanel.cpp
     panels/postProcessingPanel.cpp
+    panels/projectPanel.cpp
+
+    # File Watcher system
+    "system/fileWatcher.cpp"
 )
 
 # Public headers for editor
