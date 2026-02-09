@@ -224,6 +224,8 @@ While modern APIs like Vulkan offer better performance and control, OpenGL 4.3 w
 
 ## Contact
 
-**AssassinBear23**  
+**Beerent Huizer**
+
 [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/AssassinBear23)
 [![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:beer.huizer@gmail.com)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-%230077B5?style=for-the-badge&logoColor=white&logoSize=auto)](https://www.linkedin.com/in/beerent-huizer-154582227/)
