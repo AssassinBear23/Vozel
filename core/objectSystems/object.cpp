@@ -36,7 +36,8 @@ namespace core
     void Object::Destroy()
     {
         if (m_destroyed) return;
-        m_destroyed = true; OnDestroy();
+        m_destroyed = true; 
+        OnDestroy();
     }
 
     bool Object::IsDestroyed() const { return m_destroyed; }

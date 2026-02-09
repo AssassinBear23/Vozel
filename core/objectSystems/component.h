@@ -49,6 +49,8 @@ namespace core {
 
         virtual void DrawGui();
 
+        void OnDestroy() override;
+
     private:
         std::weak_ptr<GameObject> m_owner;
     };

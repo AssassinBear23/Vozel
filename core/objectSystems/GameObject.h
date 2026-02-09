@@ -202,6 +202,8 @@ namespace core {
         /// <returns>Shared pointer to the scene. Done by locking the weak pointer.</returns>
         const std::shared_ptr<Scene> GetScene() const { return m_scene.lock(); }
 
+        void OnDestroy() override;
+
         /// <summary>
         /// Serializes this GameObject, its components, and its children to JSON.
         /// </summary>

@@ -10,7 +10,8 @@
 #include <utility>
 #include <vector>
 
-namespace core {
+namespace core
+{
     std::shared_ptr<GameObject> GameObject::Create(std::string name)
     {
         auto go = std::shared_ptr<GameObject>(new GameObject(std::move(name)));
@@ -29,26 +30,21 @@ namespace core {
             return;
 
         // Remove from old parent
-        if (auto old = m_parent.lock()) {
+        if (auto old = m_parent.lock())
+        {
             auto& sibs = old->m_children;
             sibs.erase(std::remove(sibs.begin(), sibs.end(), self), sibs.end());
         }
-        else
-        {
-            // Was a root, remove from scene roots
+        else // Was a root, remove from scene roots
             m_scene.lock()->RemoveRootGameObject(self);
-        }
 
-        // Set new parent
         m_parent = newParent;
 
         // Add to new parent's children 
-        if (newParent) {
+        if (newParent)
             newParent->AddChild(self);
-        }
-        else {
+        else
             editor::Editor::editorCtx.currentScene->AddRootGameObject(self);
-        }
     }
 
     std::weak_ptr<GameObject> GameObject::GetParent() const { return m_parent; }
@@ -70,17 +66,20 @@ namespace core {
 
     const std::vector<std::shared_ptr<GameObject>>& GameObject::GetChildren() const { return m_children; }
 
-    const std::vector<std::shared_ptr<Component>>& GameObject::GetComponents() const {
+    const std::vector<std::shared_ptr<Component>>& GameObject::GetComponents() const
+    {
         return m_components;
     }
 
-    GameObject::GameObject(std::string name) {
+    GameObject::GameObject(std::string name)
+    {
         SetName(std::move(name));
     }
 
     void GameObject::SetChildrenEnabledState(bool enabled)
     {
-        for (const auto& child : m_children) {
+        for (const auto& child : m_children)
+        {
             child->isEnabled = enabled;
         }
     }
@@ -89,8 +88,9 @@ namespace core {
     {
         m_savedComponentStates.clear();
         m_savedComponentStates.reserve(m_components.size());
-        
-        for (const auto& component : m_components) {
+
+        for (const auto& component : m_components)
+        {
             // Save the current state
             m_savedComponentStates.push_back(component->isEnabled.Get());
             // Disable the component
@@ -101,7 +101,8 @@ namespace core {
     void GameObject::RestoreComponentStates()
     {
         // Restore each component to its saved state
-        for (size_t i = 0; i < m_components.size() && i < m_savedComponentStates.size(); ++i) {
+        for (size_t i = 0; i < m_components.size() && i < m_savedComponentStates.size(); ++i)
+        {
             m_components[i]->isEnabled = m_savedComponentStates[i];
         }
         m_savedComponentStates.clear();
@@ -111,16 +112,43 @@ namespace core {
     {
         // Call base implementation
         Object::OnEnabledChanged(newValue);
-        
+
         // Propagate to children
         SetChildrenEnabledState(newValue);
-        
+
         // Handle components with state preservation
-        if (newValue) {
+        if (newValue)
+        {
             RestoreComponentStates();
-        } else {
+        }
+        else
+        {
             SaveAndDisableComponents();
         }
+    }
+
+    void GameObject::OnDestroy()
+    {
+        // Call base implementation
+        Object::OnDestroy();
+
+        // Destroy all components
+        auto toDestroyComponents = m_components;
+        for (const auto& component : toDestroyComponents)
+            component->Destroy();
+        m_components.clear();
+
+        // Destroy all children
+        auto toDestroyChildren = m_children;
+        for (const auto& child : toDestroyChildren)
+            child->Destroy();
+        m_children.clear();
+
+        if (auto parent = m_parent.lock())
+            parent->RemoveChild(std::static_pointer_cast<GameObject>(shared_from_this()));
+        else
+            if (auto scene = m_scene.lock())
+                scene->RemoveRootGameObject(std::static_pointer_cast<GameObject>(shared_from_this()));
     }
 
     json GameObject::Serialize() const
@@ -128,10 +156,11 @@ namespace core {
         json j;
         j["name"] = name;
         j["enabled"] = isEnabled.Get();
-        
+
         // Serialize components
         json components = json::array();
-        for (const auto& comp : m_components) {
+        for (const auto& comp : m_components)
+        {
             json compData;
             compData["type"] = comp->GetTypeName();
             compData["data"] = comp->Serialize();
@@ -139,64 +168,79 @@ namespace core {
             components.push_back(compData);
         }
         j["components"] = components;
-        
+
         // Serialize children recursively
         json children = json::array();
-        for (const auto& child : m_children) {
+        for (const auto& child : m_children)
+        {
             children.push_back(child->Serialize());
         }
         j["children"] = children;
-        
+
         return j;
     }
 
     void GameObject::Deserialize(const json& data)
     {
-        if (data.contains("name")) {
+        if (data.contains("name"))
+        {
             name = data["name"].get<std::string>();
         }
-        
-        if (data.contains("enabled")) {
+
+        if (data.contains("enabled"))
+        {
             isEnabled = data["enabled"].get<bool>();
         }
-        
+
         // Deserialize components (skip Transform as it's auto-created)
-        if (data.contains("components")) {
-            for (const auto& compData : data["components"]) {
+        if (data.contains("components"))
+        {
+            for (const auto& compData : data["components"])
+            {
                 std::string typeName = compData["type"].get<std::string>();
-                
+
                 // Transform is always created automatically, just deserialize it
-                if (typeName == "Transform") {
-                    if (transform && compData.contains("data")) {
+                if (typeName == "Transform")
+                {
+                    if (transform && compData.contains("data"))
+                    {
                         transform->Deserialize(compData["data"]);
                     }
-                    if (compData.contains("enabled")) {
+                    if (compData.contains("enabled"))
+                    {
                         transform->isEnabled = compData["enabled"].get<bool>();
                     }
                 }
-                else {
+                else
+                {
                     // Create component using factory
                     auto component = ComponentFactory::Create(typeName);
-                    if (component) {
-                        if (compData.contains("data")) {
+                    if (component)
+                    {
+                        if (compData.contains("data"))
+                        {
                             component->Deserialize(compData["data"]);
                         }
                         AddComponent(component);
                         // Restore component's individual enabled state
-                        if (compData.contains("enabled")) {
+                        if (compData.contains("enabled"))
+                        {
                             component->isEnabled = compData["enabled"].get<bool>();
                         }
                     }
-                    else {
+                    else
+                    {
                         printf("[WARNING] Failed to create component type: %s\n", typeName.c_str());
                     }
                 }
             }
         }
-        
+
         // Deserialize children recursively
-        if (data.contains("children")) {
-            for (const auto& childData : data["children"]) {
+        if (data.contains("children"))
+        {
+            for (const auto& childData : data["children"])
+            {
                 auto child = GameObject::Create();
                 child->Deserialize(childData);
                 child->SetParent(std::static_pointer_cast<GameObject>(shared_from_this()));

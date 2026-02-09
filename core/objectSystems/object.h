@@ -1,82 +1,83 @@
 #pragma once
+#include "../property.h"
 #include <memory>
 #include <string>
-#include "../property.h"
 
-namespace core {
-/// <summary>
-/// Base class for engine objects (GameObject, Component, Scene, ...).
-/// Provides name, enable/disable, and destroy flags.
-/// </summary>
-/// <remarks>
-/// Must keep:
-/// - Only Object derives from std::enable_shared_from_this<Object>.
-///   Do NOT re-inherit enable_shared_from_this in subclasses.
-/// </remarks>
-class Object : public std::enable_shared_from_this<Object> {
-public:
-    Object();
-    virtual ~Object() = default;
-
+namespace core
+{
     /// <summary>
-    /// Set the display name of this object.
+    /// Base class for engine objects (GameObject, Component, Scene, ...).
+    /// Provides name, enable/disable, and destroy flags.
     /// </summary>
-    void SetName(std::string n);
+    /// <remarks>
+    /// Must keep:
+    /// - Only Object derives from std::enable_shared_from_this<Object>.
+    ///   Do NOT re-inherit enable_shared_from_this in subclasses.
+    /// </remarks>
+    class Object : public std::enable_shared_from_this<Object>
+    {
+    public:
+        Object();
+        virtual ~Object() = default;
 
-    /// <summary>
-    /// Get the display name of this object.
-    /// </summary>
-    const std::string& GetName() const;
+        /// <summary>
+        /// Set the display name of this object.
+        /// </summary>
+        void SetName(std::string n);
 
-    /// <summary>
-    /// Enabled state with automatic OnEnable/OnDisable callbacks.
-    /// Can be used directly: object->isEnabled = false;
-    /// </summary>
-    Property<bool> isEnabled{true};
+        /// <summary>
+        /// Get the display name of this object.
+        /// </summary>
+        const std::string& GetName() const;
 
-    /// <summary>
-    /// Enable this object (OnEnable hook is called).
-    /// </summary>
-    void Enable();
+        /// <summary>
+        /// Enabled state with automatic OnEnable/OnDisable callbacks.
+        /// Can be used directly: object->isEnabled = false;
+        /// </summary>
+        Property<bool> isEnabled{ true };
 
-    /// <summary>
-    /// Disable this object (OnDisable hook is called).
-    /// </summary>
-    void Disable();
+        /// <summary>
+        /// Enable this object (OnEnable hook is called).
+        /// </summary>
+        void Enable();
 
-    /// <summary>
-    /// Mark this object for destruction (OnDestroy hook is called).
-    /// </summary>
-    void Destroy();
+        /// <summary>
+        /// Disable this object (OnDisable hook is called).
+        /// </summary>
+        void Disable();
 
-    /// <summary>
-    /// Returns true if this object was destroyed.
-    /// </summary>
-    bool IsDestroyed() const;
+        /// <summary>
+        /// Mark this object for destruction (OnDestroy hook is called).
+        /// </summary>
+        void Destroy();
 
-    std::string name{};
+        /// <summary>
+        /// Returns true if this object was destroyed.
+        /// </summary>
+        bool IsDestroyed() const;
 
-protected:
-    /// <summary>
-    /// Called when the object becomes enabled.
-    /// </summary>
-    virtual void OnEnable() {}
+        std::string name{};
 
-    /// <summary>
-    /// Called when the object becomes disabled.
-    /// </summary>
-    virtual void OnDisable() {}
+    protected:
+        /// <summary>
+        /// Called when the object becomes enabled.
+        /// </summary>
+        virtual void OnEnable() {}
 
-    /// <summary>
-    /// Called when the object is destroyed.
-    /// </summary>
-    virtual void OnDestroy() {}
-    virtual void OnEnabledChanged(bool newValue);
+        /// <summary>
+        /// Called when the object becomes disabled.
+        /// </summary>
+        virtual void OnDisable() {}
+
+        /// <summary>
+        /// Called when the object is destroyed.
+        /// </summary>
+        virtual void OnDestroy() {}
+        virtual void OnEnabledChanged(bool newValue);
 
 
-private:
-    bool m_destroyed{false};
+    private:
+        bool m_destroyed{ false };
 
-};
-
+    };
 } // namespace core

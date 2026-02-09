@@ -16,4 +16,10 @@ namespace core
     {
 		ImGui::Text("No GUI implemented for %s", GetTypeName().c_str());
     }
+
+    void Component::OnDestroy()
+    {
+        if (auto owner = m_owner.lock())
+            owner->RemoveComponent(std::dynamic_pointer_cast<Component>(shared_from_this()));
+    }
 } // namespace core
