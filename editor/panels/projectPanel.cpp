@@ -1,4 +1,4 @@
-#include "C:\Users\beerh\Desktop\CMGT\Year 2\S1\RenderingEngines\FinalEngine\editor\panels\projectPanel.h"
+#include "projectPanel.h"
 
 namespace editor
 {
