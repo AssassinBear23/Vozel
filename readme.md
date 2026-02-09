@@ -19,6 +19,7 @@ The overall goal of the course was to learn C++ aswell as work with OpenGL and C
 **Primary Goals (personal):**
 - Create and maintain a clean, modular codebase using modern C++20 features.
 - Implement a component-based architecture inspired by Unity.
+- Have the absolute bare neccesities to make a basic game.
 ---
 
 ## Features
@@ -28,11 +29,12 @@ The overall goal of the course was to learn C++ aswell as work with OpenGL and C
 #### Rendering
 - **OpenGL 4.3 Core Profile** with debug callback support
 - **Multiple Render Targets (MRT)** for advanced rendering techniques
-- **Shadow Mapping** with configurable light types (Directional, Point, Spot)
+- **Shadow Mapping** with configurable light types (Directional, Point, Spot) (Currently only directional is supported, with the other two planned)
 - **Normal Mapping** for enhanced surface detail
 - **Post-Processing Pipeline** with stackable effects:
   - Bloom effect with adjustable threshold
   - Color inversion effect
+  - Fog Effect
   - Custom effect support through base class
 - **Framebuffer System** with dynamic resizing
 - **Custom Shader System** with `#include` directive support for modular shader code
@@ -44,7 +46,7 @@ The overall goal of the course was to learn C++ aswell as work with OpenGL and C
   - Renderer component for mesh rendering
   - Light component (directional, point, spot lights)
 - **Scene Management** with multiple scene support
-  - Currently hardcoded scenes only.
+  - Scene Serialization supported, allowing scene editing between sessions.
 - **Material System** with texture and uniform management
   - Also hardcoded, no material editor yet.
 - **Model Loading** via Assimp (FBX, OBJ, and more)
@@ -64,8 +66,8 @@ The overall goal of the course was to learn C++ aswell as work with OpenGL and C
 ### 🎯 Roadmap
 Future enhancements and features in order of priority:
 
-- **Fog** for atmospheric effect
-- **Scene Serialization** (save/load)
+- **File Watcher system** to allow the user to see assets in the engine, instead of having to restart it everytime.
+- **More and better shadow maps** supporting the other 2 light modes as well as supporting self covering objects.
 - **HDR Rendering** with tone mapping
 - **Shader Hot-Reloading** for rapid shader development
 - **More Post-Processing Effects** (Motion Blur, Depth of Field, Fog)
@@ -120,18 +122,8 @@ vcpkg handles all dependencies automatically, reducing setup friction.
 - **OpenGL 4.3+** capable GPU and drivers
 - **Git** for cloning the repository
 <br><br>
-## 🎮 Controls
-
-| Input | Action |
-|-------|--------|
-| **W/A/S/D** | Move camera forward/left/backward/right |
-| **Q/E** | Move camera down/up |
-| **Right Mouse + Drag** | Rotate camera |
-| **Scroll Wheel** | Adjust camera movement speed |
-| **F** | Focus selected object (planned) |
-<br><br>
 ## Getting Started
-
+##### I'm a little bit unsure about this part, but it's in the ballpark of what it probably is.
 ### 1. Install vcpkg
 
 If you haven't already, install vcpkg:
@@ -162,7 +154,7 @@ Using VisualStudio:
 - At the top menu, select `Build > Build All` to compile the project.
 - Once built, you can run the project by selecting `Debug > Start Debugging` or pressing `F5`.
 <br><br>
-There is currently no _real_ use in running the .exe file as of now, as there is no project explorer, or scene saving/loading implemented.
+There is currently no _real_ use in running the .exe file as of now, as there is no project explorer.
 <br><br>
 ## 🏗️ Architecture & Design Decisions
 ### Component-Based Object System
@@ -225,10 +217,10 @@ While modern APIs like Vulkan offer better performance and control, OpenGL 4.3 w
 
 ## Acknowledgments
 
-- **LearnOpenGL** - Excellent resource for modern OpenGL techniques.
-- **ImGui** - For the fantastic immediate-mode GUI library and extensive demo.
+- **LearnOpenGL** - Excellent resource for modern OpenGL techniques with clear and easy to follow explanations.
+- **ImGui** - For the fantastic immediate-mode GUI library and extensive demo, even if the documentation hurts me a bit.
 - **[Lucas van Dam](https://github.com/Lucas-van-Dam)** - For help and guidance during the course assignment.
-- **Open Source Libraries** - Thanks to the developers of GLFW, GLM, Assimp, STB Image, and nlohmann/json for their invaluable tools.
+- **Open Source Libraries** - Thanks to the developers of GLFW, GLM, Assimp, STB Image, and nlohmann/json for creating the tools that save me into spontaniously developing a migrane.
 
 ## Contact
 
