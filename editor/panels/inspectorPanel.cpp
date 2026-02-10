@@ -6,10 +6,6 @@
 namespace editor
 {
     /// <summary>
-    /// </summary>
-    {
-
-    /// <summary>
     /// Displays a context menu for component operations (Remove, Reset).
     /// </summary>
     /// <param name="comp">The component to show the context menu for.</param>
