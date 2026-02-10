@@ -14,6 +14,9 @@
 #include <utility>
 #include <vector>
 
+using vec4 = glm::vec4;
+using vec3 = glm::vec3;
+
 namespace core
 {
     Scene::Scene(std::string name)
@@ -54,18 +57,18 @@ namespace core
 
     const std::vector<std::shared_ptr<GameObject>>& Scene::Roots() const { return m_roots; }
 
-    void Scene::Render(const glm::mat4& view, const glm::mat4& projection)
+    void Scene::Render(const mat4& view, const mat4& projection)
     {
         if (m_renderers.empty())
             return;
 
         // Setting light data UBO
         LightData lightData = {};
-        
+
         // Use a separate counter for active lights
         int activeLightCount = 0;
         std::vector<size_t> activeLightIndices; // Track original indices for shadow maps
-        
+
         for (size_t i = 0; i < m_lights.size() && activeLightCount < 4; ++i)
         {
             auto light = m_lights[i];
@@ -74,20 +77,25 @@ namespace core
             auto lightGO = light->GetOwner();
             if (!lightGO || !lightGO->isEnabled || !lightGO->transform) continue;
 
+            mat4 worldMatrix = CalculateWorldMatrix(lightGO);
+            vec3 worldPos = vec3(worldMatrix[3]); // Extract translation from world matrix
+
+            vec3 worldDirection = glm::normalize(vec3(worldMatrix * vec4(0, 0, -1, 0))); // Forward direction in world space
+
             // Pack light data densely using activeLightCount as index
-            lightData.positions[activeLightCount] = glm::vec4(lightGO->transform->position, 1.0f);
-            lightData.directions[activeLightCount] = glm::vec4(lightGO->transform->forward(), 0.0f);
-            
-            glm::vec4 lightColor = light->GetColor();
+            lightData.positions[activeLightCount] = vec4(worldPos, 1.0f);
+            lightData.directions[activeLightCount] = vec4(worldDirection, 0.0f);
+
+            vec4 lightColor = light->GetColor();
             lightColor.w = light->intensity.Get();
             lightData.colors[activeLightCount] = lightColor;
-            
+
             lightData.lightTypes[activeLightCount] = glm::ivec4(ToInt(light->lightType), 0, 0, 0);
 
             activeLightIndices.push_back(i);
             activeLightCount++;
         }
-        
+
         lightData.numLights = activeLightCount; // Accurate count of enabled lights
 
         if (m_depthMaps.size() < activeLightCount)
@@ -109,13 +117,19 @@ namespace core
             auto lightGO = light->GetOwner();
             if (!lightGO || !lightGO->transform) continue;
 
-            lightData.positions[activeIdx] = glm::vec4(lightGO->transform->position, 1.0f);
-            lightData.directions[activeIdx] = glm::vec4(lightGO->transform->forward(), 0.0f);
-            
-            glm::vec4 lightColor = light->GetColor();
+            mat4 worldMatrix = CalculateWorldMatrix(lightGO);
+            vec3 worldPos = vec3(worldMatrix[3]); // Extract translation from world matrix
+
+            vec3 worldDirection = glm::normalize(vec3(worldMatrix * vec4(0, 0, -1, 0))); // Forward direction in world space
+
+            // Pack light data densely using activeLightCount as index
+            lightData.positions[activeLightCount] = vec4(worldPos, 1.0f);
+            lightData.directions[activeLightCount] = vec4(worldDirection, 0.0f);
+
+            vec4 lightColor = light->GetColor();
             lightColor.w = light->intensity.Get();
             lightData.colors[activeIdx] = lightColor;
-            
+
             lightData.lightTypes[activeIdx] = glm::ivec4(ToInt(light->lightType), 0, 0, 0);
 
             RenderShadowMap(activeIdx, originalIdx);
@@ -153,22 +167,22 @@ namespace core
         auto lightGO = light->GetOwner();
         if (!lightGO || !lightGO->isEnabled || !lightGO->transform) return;
 
-        glm::mat4 lightProjection, lightView, lightSpaceMatrix;
+        mat4 lightProjection, lightView, lightSpaceMatrix;
         float near_plane = 1.0f, far_plane = 25.0f;
 
         if (light->lightType.Get() == LightType::Directional)
         {
             lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-            glm::vec3 lightDir = lightGO->transform->forward();
-            glm::vec3 lightPos = -lightDir * 10.0f;
-            lightView = glm::lookAt(lightPos, lightPos + lightDir, glm::vec3(0.0f, 1.0f, 0.0f));
+            vec3 lightDir = lightGO->transform->forward();
+            vec3 lightPos = -lightDir * 10.0f;
+            lightView = glm::lookAt(lightPos, lightPos + lightDir, vec3(0.0f, 1.0f, 0.0f));
         }
         else
         {
             lightProjection = glm::perspective(glm::radians(90.0f), 1.0f, near_plane, far_plane);
             lightView = glm::lookAt(lightGO->transform->position,
                                     lightGO->transform->position + lightGO->transform->forward(),
-                                    glm::vec3(0.0f, 1.0f, 0.0f));
+                                    vec3(0.0f, 1.0f, 0.0f));
         }
 
         lightSpaceMatrix = lightProjection * lightView;
@@ -179,14 +193,14 @@ namespace core
 
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, m_depthMapFBOs[activeIdx]);
-        
+
         // Check framebuffer status
         GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
         if (status != GL_FRAMEBUFFER_COMPLETE)
         {
             printf("  [ERROR] Shadow map framebuffer incomplete! Status: 0x%x\n", status);
         }
-        
+
         glClear(GL_DEPTH_BUFFER_BIT);
 
         glCullFace(GL_FRONT);
@@ -196,7 +210,7 @@ namespace core
             if (!renderer) continue;
             auto go = renderer->GetOwner();
             if (!go || !go->isEnabled || !renderer->isEnabled) continue;
-            glm::mat4 modelMatrix = CalculateWorldMatrix(go);
+            mat4 modelMatrix = CalculateWorldMatrix(go);
             depthShader.setMat4("modelMatrix", modelMatrix);
 
             for (auto& mesh : renderer->GetMeshes())
@@ -210,21 +224,21 @@ namespace core
         m_lightSpaceMatrices[activeIdx] = lightSpaceMatrix;
     }
 
-    void Scene::RenderFinalScene(const glm::mat4& view, const glm::mat4& projection)
+    void Scene::RenderFinalScene(const mat4& view, const mat4& projection)
     {
         // Rendering all renderers
         for (const auto& renderer : m_renderers)
         {
             if (!renderer) continue;
-            
+
             auto go = renderer->GetOwner();
             if (!go) continue;
-            
+
             if (!go->isEnabled) continue;
             if (!renderer->isEnabled) continue;
 
-            glm::mat4 worldMatrix = CalculateWorldMatrix(go);
-            glm::mat4 mvp = projection * view * worldMatrix;
+            mat4 worldMatrix = CalculateWorldMatrix(go);
+            mat4 mvp = projection * view * worldMatrix;
 
             auto material = renderer->GetMaterial();
             if (!material) continue;
@@ -232,38 +246,38 @@ namespace core
             // Set matrices
             material->SetMat4("mvpMatrix", mvp);
             material->SetMat4("modelMatrix", worldMatrix);
-            
+
             // Set bloom threshold for materials that use it
             material->SetFloat("bloomThreshold", m_bloomThreshold);
-            
+
             // Pass light space matrix and shadow map only if we have lights
             if (!m_lightSpaceMatrices.empty() && !m_depthMaps.empty())
                 material->SetMat4("lightSpaceMatrix", m_lightSpaceMatrices[0]);
-            
+
             // Check OpenGL error before rendering
             GLenum err = glGetError();
             if (err != GL_NO_ERROR)
                 printf("  [ERROR] OpenGL error before rendering %s: 0x%x\n", go->name.c_str(), err);
-            
+
             // Call material->Use() which will bind textures and set uniforms
             material->Use();
-            
+
             // IMPORTANT: Bind shadow map AFTER Material::Use() because Material::Use() binds its textures
             if (!m_depthMaps.empty())
             {
                 glActiveTexture(GL_TEXTURE3);
                 glBindTexture(GL_TEXTURE_2D, m_depthMaps[0]);
-                
+
                 // Set the uniform to point to texture unit 3
                 GLint shadowMapLoc = glGetUniformLocation(material->GetShaderProgram(), "shadowMap");
                 if (shadowMapLoc != -1)
                     glUniform1i(shadowMapLoc, 3);
             }
-            
+
             // Now render the meshes
             for (auto& mesh : renderer->GetMeshes())
                 mesh.Render(GL_TRIANGLES);
-            
+
             // Check OpenGL error after rendering
             err = glGetError();
             if (err != GL_NO_ERROR)
@@ -271,12 +285,12 @@ namespace core
         }
     }
 
-    glm::mat4 Scene::CalculateWorldMatrix(const std::shared_ptr<GameObject>& go)
+    mat4 Scene::CalculateWorldMatrix(const std::shared_ptr<GameObject>& go)
     {
-        if (!go) return glm::mat4(1.0f);
+        if (!go) return mat4(1.0f);
 
         // Get local transform
-        glm::mat4 localMatrix = glm::mat4(1.0f);
+        mat4 localMatrix = mat4(1.0f);
         if (go->transform)
         {
             localMatrix = go->transform->GetLocalMatrix();
@@ -294,7 +308,8 @@ namespace core
     void Scene::GenerateDepthMaps(int numLights, int width_resolution, int height_resolution)
     {
         // Clean up old maps if they exist
-        if (!m_depthMapFBOs.empty()) {
+        if (!m_depthMapFBOs.empty())
+        {
             // printf("[GenerateDepthMaps] Cleaning up old depth maps\n");
             glDeleteFramebuffers(m_depthMapFBOs.size(), m_depthMapFBOs.data());
             glDeleteTextures(m_depthMaps.size(), m_depthMaps.data());
@@ -316,7 +331,7 @@ namespace core
             // Configure depth texture
             glBindTexture(GL_TEXTURE_2D, m_depthMaps[i]);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
-                width_resolution, height_resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+                         width_resolution, height_resolution, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -344,32 +359,37 @@ namespace core
         json j;
         j["name"] = m_name;
         j["bloomThreshold"] = m_bloomThreshold;
-        
+
         json roots = json::array();
-        for (const auto& root : m_roots) {
+        for (const auto& root : m_roots)
+        {
             roots.push_back(root->Serialize());
         }
         j["roots"] = roots;
-        
+
         return j;
     }
 
     void Scene::Deserialize(const json& data)
     {
-        if (data.contains("name")) {
+        if (data.contains("name"))
+        {
             m_name = data["name"].get<std::string>();
         }
-        
-        if (data.contains("bloomThreshold")) {
+
+        if (data.contains("bloomThreshold"))
+        {
             m_bloomThreshold = data["bloomThreshold"].get<float>();
         }
-        
+
         m_roots.clear();
         m_renderers.clear();
         m_lights.clear();
-        
-        if (data.contains("roots")) {
-            for (const auto& rootData : data["roots"]) {
+
+        if (data.contains("roots"))
+        {
+            for (const auto& rootData : data["roots"])
+            {
                 auto go = GameObject::Create();
                 go->Deserialize(rootData);
                 AddRootGameObject(go);
@@ -379,10 +399,12 @@ namespace core
 
     bool Scene::SaveToFile(const std::string& filepath) const
     {
-        try {
+        try
+        {
             json j = Serialize();
             std::ofstream file(filepath);
-            if (!file.is_open()) {
+            if (!file.is_open())
+            {
                 printf("[ERROR] Failed to open file for writing: %s\n", filepath.c_str());
                 return false;
             }
@@ -390,7 +412,8 @@ namespace core
             printf("[SUCCESS] Scene saved to: %s\n", filepath.c_str());
             return true;
         }
-        catch (const std::exception& e) {
+        catch (const std::exception& e)
+        {
             printf("[ERROR] Failed to save scene: %s\n", e.what());
             return false;
         }
@@ -398,19 +421,22 @@ namespace core
 
     bool Scene::LoadFromFile(const std::string& filepath)
     {
-        try {
+        try
+        {
             std::ifstream file(filepath);
-            if (!file.is_open()) {
+            if (!file.is_open())
+            {
                 printf("[ERROR] Failed to open file for reading: %s\n", filepath.c_str());
                 return false;
             }
-            
+
             json j = json::parse(file);
             Deserialize(j);
             printf("[SUCCESS] Scene loaded from: %s\n", filepath.c_str());
             return true;
         }
-        catch (const std::exception& e) {
+        catch (const std::exception& e)
+        {
             printf("[ERROR] Failed to load scene: %s\n", e.what());
             return false;
         }
