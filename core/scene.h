@@ -9,6 +9,9 @@
 #include <vector>
 
 
+
+using mat4 = glm::mat4;
+
 namespace core // Forward declaration
 {
     class Object;
@@ -71,7 +74,7 @@ namespace core
         /// </summary>
         /// <param name="view">The view matrix to pass to the TheRenderGameObject method</param>
         /// <param name="projection">The projection matrix to pass to the TheRenderGameObject method</param>
-        void Render(const glm::mat4& view, const glm::mat4& projection);
+        void Render(const mat4& view, const mat4& projection);
 
         /// <summary>
         /// Return all root GameObjects.
@@ -101,6 +104,13 @@ namespace core
         bool SaveToFile(const std::string& filepath) const;
         bool LoadFromFile(const std::string& filepath);
 
+        /// <summary>
+        /// Calculates the world matrix for a GameObject by recursively multiplying parent transforms.
+        /// </summary>
+        /// <param name="go">The GameObject to calculate the world matrix for.</param>
+        /// <returns>The world transformation matrix.</returns>
+        mat4 CalculateWorldMatrix(const std::shared_ptr<GameObject>& go);
+
     private:
         /// <summary>
         /// Generic registration for components
@@ -125,25 +135,18 @@ namespace core
         }
 
         void RenderShadowMap(int activeIndex, size_t lightIdx);
-        void RenderFinalScene(const glm::mat4& view, const glm::mat4& projection);
+        void RenderFinalScene(const mat4& view, const mat4& projection);
         void GenerateDepthMaps(int numLights, int width_resolution, int height_resolution);
 
         void Deserialize(const json& data);
         json Serialize() const;
-
-        /// <summary>
-        /// Calculate the world matrix for a GameObject.
-        /// </summary>
-        /// <param name="go"></param>
-        /// <returns></returns>
-        glm::mat4 CalculateWorldMatrix(const std::shared_ptr<GameObject>& go);
 
         std::string m_name;
         std::vector<std::shared_ptr<GameObject>> m_roots;
         std::vector<std::shared_ptr<Light>> m_lights;
         GLuint m_uboLights{ 0 };
         std::vector<std::shared_ptr<Renderer>> m_renderers;
-        std::vector<glm::mat4> m_lightSpaceMatrices;
+        std::vector<mat4> m_lightSpaceMatrices;
         core::Shader depthShader;
         std::vector<unsigned int> m_depthMapFBOs;
         std::vector<unsigned int> m_depthMaps;
