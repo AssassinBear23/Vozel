@@ -6,14 +6,8 @@
 namespace editor
 {
     /// <summary>
-    /// Actions that can be performed on a component, deferred until after iteration.
     /// </summary>
-    enum class ComponentAction
     {
-        None,
-        Remove,
-        Reset
-    };
 
     /// <summary>
     /// Displays a context menu for component operations (Remove, Reset).
