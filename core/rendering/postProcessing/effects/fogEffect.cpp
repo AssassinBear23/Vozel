@@ -17,8 +17,8 @@ namespace core
 
         void FogEffect::Apply(FrameBuffer& inputFBO, FrameBuffer& outputFBO, const int width, const int height)
         {
-            outputFBO.Bind();
-            CLEAR_BOUND(width, height);
+            outputFBO.BindAndClear(width, height);
+            //CLEAR_BOUND(width, height);
 
             // Get depth from the original scene render through the manager
             if (auto manager = m_manager.lock())

@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 namespace core
 {
@@ -76,7 +77,7 @@ namespace core
             if (!m_isValid || m_fboID == 0)
             {
                 printf("[FRAMEBUFFER] ERROR: Attempting to bind invalid framebuffer '%s' (ID: %u, Valid: %d)\n",
-                       m_name.c_str(), m_fboID, m_isValid);
+                    m_name.c_str(), m_fboID, m_isValid);
                 return;
             }
 
@@ -101,9 +102,9 @@ namespace core
         /// <summary>
         /// Binds this framebuffer object for read operations.
         /// </summary>
-        void BindRead() const 
-        { 
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fboID); 
+        void BindRead() const
+        {
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fboID);
         }
 
         /// <summary>
@@ -121,7 +122,10 @@ namespace core
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glViewport(0, 0, width, height);
 
-            printf("%s (%d)\n\t[FRAMEBUFFER] Cleared currently bound framebuffer (name: %s) to w: %4i, h: %4i.\n\n", file, line, m_currentBoundFBOName.c_str(), width, height);
+            std::string filename = std::filesystem::path(file).filename().string();
+
+            printf("[FRAMEBUFFER] Cleared currently bound framebuffer (name: %s) to w: %4i, h: %4i.\t%s (%d)\n",
+                m_currentBoundFBOName.c_str(), width, height, filename.c_str(), line);
         }
 
 #define CLEAR_BOUND(width, height) core::FrameBuffer::ClearBound(width, height, __FILE__, __LINE__)
@@ -140,8 +144,8 @@ namespace core
         /// </summary>
         /// <param name="index">The index of the color attachment (0-based)</param>
         /// <returns>The color texture ID, or 0 if index is out of range.</returns>
-        GLuint GetColorAttachment(unsigned int index = 0) const 
-        { 
+        GLuint GetColorAttachment(unsigned int index = 0) const
+        {
             return (index < m_colorTextures.size()) ? m_colorTextures[index] : 0;
         }
 

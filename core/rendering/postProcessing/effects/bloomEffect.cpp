@@ -13,12 +13,14 @@ namespace core
     namespace postProcessing
     {
         BloomEffect::BloomEffect(std::weak_ptr<PostProcessingManager> manager)
-            : PostProcessingEffectBase("BloomEffect", nullptr, manager, true)
+            : PostProcessingEffectBase("BloomEffect", nullptr, manager, false)
         {
             m_blurShader = std::make_shared<Shader>("assets/shaders/postProcessing/postProcess.vert", "assets/shaders/postProcessing/bloomBlur.frag");
             m_compositeShader = std::make_shared<Shader>("assets/shaders/postProcessing/postProcess.vert", "assets/shaders/postProcessing/composite.frag");
+            m_brightPassShader = std::make_shared<Shader>("assets/shaders/postProcessing/postProcess.vert", "assets/shaders/postProcessing/brightPass.frag");
             m_blurMaterial = std::make_shared<Material>(m_blurShader->ID);
             m_compositeMaterial = std::make_shared<Material>(m_compositeShader->ID);
+            m_brightPassMaterial = std::make_shared<Material>(m_brightPassShader->ID);
 
             tempFBO_1 = FrameBuffer("postProcessFBO_1", FrameBufferSpecifications{ 100, 100, AttachmentType::COLOR_ONLY });
             tempFBO_2 = FrameBuffer("postProcessFBO_2", FrameBufferSpecifications{ 100, 100, AttachmentType::COLOR_ONLY });
@@ -32,69 +34,59 @@ namespace core
 
         int BloomEffect::GetPassCount() const
         {
-            return m_blurAmount * 2;
+            return m_blurAmount * 2 + 1; // +1 for threshold extraction pass
         }
 
         void BloomEffect::Apply(FrameBuffer& inputFBO, FrameBuffer& outputFBO, const int width, const int height)
         {
             std::shared_ptr<core::Material> material;
 
-            GLuint thresholdTexture = inputFBO.GetColorAttachment(1);
-            
             tempFBO_1.Resize(width, height);
             tempFBO_2.Resize(width, height);
-
-            if (m_debugMode == BloomDebugMode::ThresholdOnly)
-            {
-                // Blit the second color attachment (bright pixels) directly to output
-                outputFBO.BindDraw();
-                inputFBO.BindRead();
-
-                glReadBuffer(GL_COLOR_ATTACHMENT1);
-                glDrawBuffer(GL_COLOR_ATTACHMENT0);
-
-                glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-                glBindFramebuffer(GL_FRAMEBUFFER, 0);
-                
-                glReadBuffer(GL_COLOR_ATTACHMENT0);
-                return;
-            }
 
             FrameBuffer* targetFBO = nullptr;
             FrameBuffer* sourceFBO = nullptr;
             FrameBuffer* lastFBO = nullptr;
 
-            tempFBO_1.BindAndClear(width, height);
-            tempFBO_2.BindAndClear(width, height);
-            tempFBO_2.Unbind();
-
             for (int passIndex = 0; passIndex < GetPassCount(); passIndex++)
             {
                 // Set the target and source FBO, as well as determining if doing a horizontal pass.
-                bool horizontal = passIndex % 2 == 0;
-                targetFBO = horizontal ? &tempFBO_1 : &tempFBO_2;
-                sourceFBO = (targetFBO == &tempFBO_1) ? &tempFBO_2 : &tempFBO_1;
+                bool isThresholdPass = passIndex == 0;
+                bool horizontal = (passIndex - 1) % 2 == 0;
 
-                bool returnAfter = m_debugMode == BloomDebugMode::BlurOnly && passIndex + 1 == GetPassCount();
+                if (isThresholdPass)
+                {
+                    targetFBO = &tempFBO_2;
+                    sourceFBO = nullptr; // No source for threshold pass
+                }
+                else
+                {
+                    targetFBO = horizontal ? &tempFBO_1 : &tempFBO_2;
+                    sourceFBO = (targetFBO == &tempFBO_1) ? &tempFBO_2 : &tempFBO_1;
+                }
+
+                bool returnAfter = (m_debugMode == BloomDebugMode::BlurOnly && passIndex + 1 == GetPassCount()) || (m_debugMode == BloomDebugMode::ThresholdOnly && isThresholdPass);
 
                 if (returnAfter)
                     outputFBO.BindAndClear(width, height);
-                else 
-                    targetFBO->BindAndClear(width, height);
-
-                // Set Material
-                material = m_blurMaterial;
-                material->SetBool("horizontal", horizontal);
-                material->SetFloat("intensity", m_intensity);
-
-                // First pass uses the threshold texture from MRT, subsequent passes use temp buffers
-                if (passIndex == 0)
-                    material->SetTextureID("inputTexture", thresholdTexture, 0);
                 else
-                    material->SetTextureID("inputTexture", sourceFBO->GetColorAttachment(), 0);
+                    targetFBO->BindAndClear(width, height);
+                
+                if (isThresholdPass)
+                {
+                    material = m_brightPassMaterial;
+                    material->SetTextureID("inputTexture", inputFBO.GetColorAttachment(0), 0);
+                    material->SetFloat("threshold", m_bloomThreshold);
+                }
+                else
+                {
+                    material = m_blurMaterial;
+                    material->SetBool("horizontal", horizontal);
+                    material->SetFloat("intensity", m_intensity);
+                    material->SetTextureID("inputTexture", sourceFBO->GetColorAttachment(0), 0);
+                }
 
                 material->Use();
-
 
                 RenderQuad(width, height);
 
@@ -107,11 +99,11 @@ namespace core
             outputFBO.BindAndClear(width, height);
 
             material = m_compositeMaterial;
-            material->SetTextureID("sceneTexture", inputFBO.GetColorAttachment(), 0);
+            material->SetTextureID("sceneTexture", inputFBO.GetColorAttachment(0), 0);
             material->SetTextureID("bloomTexture", lastFBO->GetColorAttachment(), 1);
             material->Use();
 
-            CLEAR_BOUND(width, height);
+            outputFBO.BindAndClear(width, height);
             RenderQuad(width, height);
         }
 

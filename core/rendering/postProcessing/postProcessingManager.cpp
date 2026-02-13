@@ -85,7 +85,7 @@ namespace core
                     currentOutput = (currentOutput == &tempFBO_1) ? &tempFBO_2 : &tempFBO_1;
                 }
             }
-            printf("[POSTPROCESS MANAGER] Finished processing effects.\n\n");
+            //printf("[POSTPROCESS MANAGER] Finished processing effects.\n");
         }
 
         bool PostProcessingManager::AddEffect(const std::shared_ptr<PostProcessingEffectBase> effect)
@@ -119,9 +119,9 @@ namespace core
 
         void PostProcessingManager::Initialize()
         {
+            AddEffect(std::make_shared<postProcessing::FogEffect>(weak_from_this()));
             AddEffect(std::make_shared<postProcessing::BloomEffect>(weak_from_this()));
             AddEffect(std::make_shared<postProcessing::InvertEffect>(weak_from_this()));
-            AddEffect(std::make_shared<postProcessing::FogEffect>(weak_from_this()));
         }
 
         void PostProcessingManager::SortEnabledEffects()

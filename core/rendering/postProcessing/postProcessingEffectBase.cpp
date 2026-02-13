@@ -28,9 +28,8 @@ namespace core
 
         void PostProcessingEffectBase::Apply(FrameBuffer& inputFBO, FrameBuffer& outputFBO, const int width, const int height)
         {
-            outputFBO.Bind();
-
-            CLEAR_BOUND(width, height);
+            outputFBO.BindAndClear(width, height);
+            //CLEAR_BOUND(width, height);
 
             if (m_material)
             {
