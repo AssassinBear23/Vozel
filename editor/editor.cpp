@@ -36,6 +36,18 @@ namespace editor
             shutdown();
     }
 
+    static std::vector<float> fpsHistory;
+    static float GetAverageFPS(float deltaTime)
+    {
+        fpsHistory.push_back(1.0f / deltaTime);
+        if (fpsHistory.size() > 60)
+            fpsHistory.erase(fpsHistory.begin());
+        float sum = 0.0f;
+        for (float fps : fpsHistory)
+            sum += fps;
+        return sum / fpsHistory.size();
+    }
+
     static void APIENTRY glDebugOutput(GLenum source,
                                        GLenum type,
                                        unsigned int id,
@@ -260,7 +272,7 @@ namespace editor
         m_isRunning = true;
 
         double currentTime = glfwGetTime();
-        float deltaTime = 0.0f;
+        m_deltaTime = 0.0f;
 
         // Main editor loop
         while (m_isRunning && !glfwWindowShouldClose(m_window))
@@ -271,14 +283,14 @@ namespace editor
             draw();
 
             // Render the 3D scene
-            renderScene(deltaTime);
+            renderScene(m_deltaTime);
 
             endFrame();
             glfwSwapBuffers(m_window);
 
             // Calculate delta time
             double finishFrameTime = glfwGetTime();
-            deltaTime = static_cast<float>(finishFrameTime - currentTime);
+            m_deltaTime = static_cast<float>(finishFrameTime - currentTime);
             currentTime = finishFrameTime;
         }
 
@@ -422,6 +434,8 @@ namespace editor
             }
             ImGui::EndMenu();
         }
+
+        ImGui::Text("Fps: %.1f", GetAverageFPS(m_deltaTime));
         ImGui::EndMainMenuBar();
     }
 

@@ -65,6 +65,8 @@ namespace editor
         bool m_initialized = false;
         ImGuiID m_dockspaceId = 0;
 
+        float m_deltaTime = 0.0f;
+
         std::vector<std::unique_ptr<Panel>> m_panels;
 
         float m_windowRoundingValue = 0.0f;
