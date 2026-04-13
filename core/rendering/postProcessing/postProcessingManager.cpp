@@ -121,7 +121,6 @@ namespace core
         {
             AddEffect(std::make_shared<postProcessing::FogEffect>(weak_from_this()));
             AddEffect(std::make_shared<postProcessing::BloomEffect>(weak_from_this()));
-            AddEffect(std::make_shared<postProcessing::InvertEffect>(weak_from_this()));
         }
 
         void PostProcessingManager::SortEnabledEffects()

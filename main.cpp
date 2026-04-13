@@ -1,19 +1,19 @@
-﻿#include "editor/Editor.h"
+﻿#include "game/Game.h"
 
-using namespace editor;
+using namespace game;
 
 int main()
 {
-    Editor editor;
+    Game game;
     
-    if (!editor.init("#version 430"))
+    if (!game.init("#version 430"))
     {
         return -1;
     }
 
-    // Run the editor (contains the main loop)
-    editor.run();
+    // Run the game (contains the main loop)
+    game.run();
 
-    // Cleanup happens automatically in Editor destructor
+    // Cleanup happens automatically in Game destructor
     return 0;
 }

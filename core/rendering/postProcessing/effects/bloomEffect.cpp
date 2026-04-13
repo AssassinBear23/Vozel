@@ -2,8 +2,7 @@
 #include "../../frameBuffer.h"
 #include "../../shader.h"
 #include "bloomEffect.h"
-#include "../../../scene.h"
-#include "../../../../editor/Editor.h"
+#include "../../../../game/game.h"
 #include <glad/glad.h>
 #include <imgui.h>
 
@@ -24,12 +23,6 @@ namespace core
 
             tempFBO_1 = FrameBuffer("postProcessFBO_1", FrameBufferSpecifications{ 100, 100, AttachmentType::COLOR_ONLY });
             tempFBO_2 = FrameBuffer("postProcessFBO_2", FrameBufferSpecifications{ 100, 100, AttachmentType::COLOR_ONLY });
-
-            m_bloomThreshold.SetOnChange([this](float newThreshold)
-                {
-                    if (auto currentScene = editor::Editor::editorCtx.currentScene)
-                        currentScene->SetBloomThreshold(newThreshold);
-                });
         }
 
         int BloomEffect::GetPassCount() const

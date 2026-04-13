@@ -12,7 +12,7 @@ if (POLICY CMP0141)
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
-project("FinalEngine")
+project("Vozel")
 
 # ===================================================================
 # Find all dependencies at the top level (shared across all targets)
@@ -41,18 +41,18 @@ endif()
 # ===================================================================
 
 add_subdirectory(core)
-add_subdirectory(editor)
+add_subdirectory(game)
 
 # ===================================================================
 # Main executable
 # ===================================================================
 
-add_executable(FinalEngine "main.cpp")
+add_executable(Vozel "main.cpp")
 
 # Link against core and editor libraries
-target_link_libraries(FinalEngine PRIVATE 
-    CoreEngine
-    EditorLib
+target_link_libraries(Vozel PRIVATE 
+    VozelEngine
+    GameLib
 )
 
 # ===================================================================
@@ -89,10 +89,10 @@ function(copy_assets_to_target target)
 endfunction()
 
 # Copy assets for the main executable
-copy_assets_to_target(FinalEngine)
+copy_assets_to_target(Vozel)
 
 # ===================================================================
-# Optional: Set FinalEngine as the startup project in Visual Studio
+# Optional: Set Vozel as the startup project in Visual Studio
 # ===================================================================
 
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT FinalEngine)
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Vozel)
