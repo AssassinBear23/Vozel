@@ -1,7 +1,7 @@
+#include "../rendering/mesh.h"
+#include "../rendering/vertex.h"
 #include "assimpLoader.h"
 #include "model.h"
-#include "Rendering/mesh.h"
-#include "rendering/vertex.h"
 #include <assimp/Importer.hpp>
 #include <assimp/mesh.h>
 #include <assimp/postprocess.h>

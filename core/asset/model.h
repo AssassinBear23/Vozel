@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Rendering/mesh.h"
+#include "../rendering/mesh.h"
 #include <glm/ext/matrix_float4x4.hpp>
 #include <string>
 #include <vector>

@@ -2,7 +2,7 @@
 
 #include <string>
 #include <assimp/scene.h>
-#include "Rendering/mesh.h"
+#include "../rendering/mesh.h"
 #include "model.h"
 
 namespace core {

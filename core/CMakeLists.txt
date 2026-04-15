@@ -2,15 +2,15 @@
 
 add_library(VozelEngine STATIC
     # Core systems
-    assimpLoader.cpp
-    model.cpp
-    material.cpp
+    "asset/assimpLoader.cpp"
+    "asset/model.cpp"
+    "asset/material.cpp"
     camera.cpp
     
     # Rendering
     rendering/mesh.cpp
     rendering/shader.h
-    rendering/texture.cpp
+    "asset/texture.cpp"
     rendering/frameBuffer.cpp
     
     # Post-processing

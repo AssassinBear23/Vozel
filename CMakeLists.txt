@@ -79,13 +79,13 @@ function(copy_assets_to_target target)
     )
     
     # Copy textures
-    add_custom_command(
-        TARGET ${target} PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/assets/textures/
-        $<TARGET_FILE_DIR:${target}>/assets/textures/
-        COMMENT "Copying textures for ${target}..."
-    )
+    #add_custom_command(
+    #    TARGET ${target} PRE_BUILD
+    #    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    #    ${CMAKE_SOURCE_DIR}/assets/textures/
+    #    $<TARGET_FILE_DIR:${target}>/assets/textures/
+    #    COMMENT "Copying textures for ${target}..."
+    #)
 endfunction()
 
 # Copy assets for the main executable

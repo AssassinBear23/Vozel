@@ -1,21 +1,22 @@
-#include "core/assimpLoader.h"
 #include "core/camera.h"
-#include "core/material.h"
-#include "core/model.h"
 #include "core/rendering/frameBuffer.h"
-#include "core/rendering/mesh.h"
-#include "core/rendering/texture.h"
 #include "game.h"
 #include "inputManager.h"
+#include <algorithm>
+#include <core/rendering/postProcessing/postProcessingManager.h>
 #include <cstdio>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace game
 {

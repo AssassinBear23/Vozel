@@ -1,8 +1,8 @@
-#include "../../../material.h"
+#include "../../../../game/game.h"
+#include "../../../asset/material.h"
 #include "../../frameBuffer.h"
 #include "../../shader.h"
 #include "bloomEffect.h"
-#include "../../../../game/game.h"
 #include <glad/glad.h>
 #include <imgui.h>
 
